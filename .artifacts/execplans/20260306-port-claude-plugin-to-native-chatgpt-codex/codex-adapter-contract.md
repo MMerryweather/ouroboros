@@ -1,0 +1,8 @@
+# Codex Adapter Contract
+backend_library: LiteLLMAdapter
+transport: litellm.acompletion
+required_auth_env: OPENAI_API_KEY
+model_mapping: passthrough_completion_config_model
+retry_policy: stamina_retries_same_as_litellm_adapter
+expected_error_type: ProviderError(provider="codex")
+fallback_to_claude: forbidden_on_primary_path

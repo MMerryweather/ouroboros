@@ -1,0 +1,20 @@
+# Preflight (elevated retry) 2026-03-06T13:25:24Z
+## Toolchain
+Python 3.13.5
+uv 0.10.8
+Python 3.14.3
+python-3.14+-ok
+## Repo checks
+AGENTS.md present
+PLANS.md present
+## Candidate runtime
+codex command found
+## Codex-only guardrail
+claude binary present (must remain optional only)
+preflight-gate: PASS
+
+## Retry Record
+attempt_1: FAIL
+failure_reason: uv missing, then uv dependency resolution DNS failure in sandbox context
+attempt_2: PASS
+retry_context: elevated execution context with unrestricted network

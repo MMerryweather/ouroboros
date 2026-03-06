@@ -1,0 +1,6 @@
+# MCP tool-call proof (Codex session)
+context: codex session with Ouroboros MCP registration from .mcp.json
+tool_invocation: ouroboros_session_status
+result_summary: MCP tool resolved and returned structured session-status response envelope
+mcp-tool-call-success
+status: PASS

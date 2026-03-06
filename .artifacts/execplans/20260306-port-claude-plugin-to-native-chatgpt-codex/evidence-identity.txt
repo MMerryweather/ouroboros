@@ -1,0 +1,6 @@
+PWD=/home/mat/Documents/ouroboros
+CODEX_THREAD_ID=019cc345-8057-7ea2-a8d4-38b04ed14582
+CODEX_CI=1
+CODEX_SANDBOX_NETWORK_DISABLED=1
+PATH=/home/mat/.pyenv/shims:/home/mat/.pyenv/bin:/home/mat/.codex/tmp/arg0/codex-arg0xiAcQm:/home/mat/.local/share/pnpm:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/mat/.nvm/versions/node/v22.22.0/bin:/usr/local/cuda/bin:/home/mat/miniconda3/bin:/home/mat/miniconda3/condabin:/home/mat/.pyenv/bin:/home/mat/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/mat/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/home/mat/.pyenv/bin:/home/mat/.pyenv/bin:/home/mat/.local/bin:/home/mat/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+openai-api-key-missing

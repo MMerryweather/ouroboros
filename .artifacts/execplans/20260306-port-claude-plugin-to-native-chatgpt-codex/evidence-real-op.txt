@@ -1,0 +1,9 @@
+# Real-operation evidence (Codex session)
+context: codex-native chat session
+input: ooo interview "Build a tiny smoke-test CLI"
+routing_result: skills/interview/SKILL.md loaded from repository
+observed_behavior:
+- Interview skill selected and first clarification step prepared
+- Flow progressed beyond help output into interview path
+provider-auth-success
+status: PASS

@@ -13,7 +13,7 @@ How to see it working after implementation:
 
 ## Progress
 
-- [ ] Create preflight gate artifacts proving local runtime/tooling/auth prerequisites for Codex-native execution.
+- [x] (2026-03-06 13:28 UTC) Create preflight gate artifacts proving local runtime/tooling/auth prerequisites for Codex-native execution.
 - [ ] Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
 - [ ] Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
 - [ ] Implement command routing and skill/agent loading changes for Codex-native invocation.
@@ -31,9 +31,11 @@ Use timestamps when completing items, for example:
 
 ## Surprises & Discoveries
 
-(Empty during planning; update during implementation.)
+- Observation: PKG-0 preflight initially failed because `uv` was not installed and `uv run` dependency resolution failed under sandboxed network restrictions.
+  Evidence: Initial preflight run exited non-zero with `uv: command not found` and subsequent `litellm` DNS fetch failures; elevated retry succeeded and `preflight-gate: PASS` was recorded in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/preflight.txt`.
 
-This section will document unexpected behaviors, bugs, optimizations, or insights discovered during implementation.
+- Observation: `uv run ouroboros mcp info` initially failed in sandbox because the CLI attempted to create `~/.ouroboros/logs`, which is read-only in this execution context.
+  Evidence: First MCP probe attempt raised `OSError: [Errno 30] Read-only file system: '/home/mat/.ouroboros'`; elevated retry succeeded and produced tool inventory in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/mcp-probe.txt`.
 
 ## Decision Log
 
@@ -52,6 +54,10 @@ This section will document unexpected behaviors, bugs, optimizations, or insight
 - Decision: Use Python/uv quality gates (`ruff`, `mypy`, `pytest`) instead of npm-based gates.
   Rationale: This repository is Python-first (`pyproject.toml`, `docs/contributing/testing-guide.md`, `.github/workflows/test.yml`).
   Date/Author: 2026-03-06 / Planning Agent
+
+- Decision: Execute PKG-0 gate retries under elevated context after sandbox-only failures, and persist both failed and successful attempts in PKG-0 artifacts.
+  Rationale: `docs/PLANS.md` guardrails require single-variable retry on execution context plus explicit evidence of both attempts when restrictions block validation.
+  Date/Author: 2026-03-06 / Building Agent
 
 ## Outcomes & Retrospective
 
