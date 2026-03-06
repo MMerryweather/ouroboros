@@ -15,7 +15,7 @@ How to see it working after implementation:
 
 - [x] (2026-03-06 13:28 UTC) Create preflight gate artifacts proving local runtime/tooling/auth prerequisites for Codex-native execution.
 - [ ] Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
-- [ ] Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
+- [x] (2026-03-06 13:33 UTC) Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
 - [ ] Implement command routing and skill/agent loading changes for Codex-native invocation.
 - [ ] Update setup flow and documentation to make Codex-native path primary and Claude-plugin path optional/legacy.
 - [ ] Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
@@ -37,6 +37,9 @@ Use timestamps when completing items, for example:
 - Observation: `uv run ouroboros mcp info` initially failed in sandbox because the CLI attempted to create `~/.ouroboros/logs`, which is read-only in this execution context.
   Evidence: First MCP probe attempt raised `OSError: [Errno 30] Read-only file system: '/home/mat/.ouroboros'`; elevated retry succeeded and produced tool inventory in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/mcp-probe.txt`.
 
+- Observation: Directly extending `LiteLLMAdapter` preserved retry and request semantics, but provider labels from upstream errors required explicit normalization to satisfy the Codex contract.
+  Evidence: Added `CodexAdapter` wrapper that rewrites all `Result.err` provider labels to `codex`; unit tests in `tests/unit/providers/test_codex_adapter.py` verify normalized provider mapping and auth gating.
+
 ## Decision Log
 
 - Decision: Treat this user request as the authoritative backlog source because `docs/working/backlog.md` and `docs/working/assistant_state.md` are absent in this repository.
@@ -57,6 +60,10 @@ Use timestamps when completing items, for example:
 
 - Decision: Execute PKG-0 gate retries under elevated context after sandbox-only failures, and persist both failed and successful attempts in PKG-0 artifacts.
   Rationale: `docs/PLANS.md` guardrails require single-variable retry on execution context plus explicit evidence of both attempts when restrictions block validation.
+  Date/Author: 2026-03-06 / Building Agent
+
+- Decision: Implement Codex as a strict wrapper over `LiteLLMAdapter` instead of introducing a new SDK-specific adapter.
+  Rationale: This preserves existing retry behavior and request construction while enforcing Codex-specific auth/error contracts (`OPENAI_API_KEY` requirement and `ProviderError(provider="codex")` normalization).
   Date/Author: 2026-03-06 / Building Agent
 
 ## Outcomes & Retrospective

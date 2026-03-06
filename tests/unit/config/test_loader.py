@@ -12,6 +12,7 @@ from ouroboros.config.loader import (
     create_default_config,
     credentials_file_secure,
     ensure_config_dir,
+    get_llm_provider_mode,
     load_config,
     load_credentials,
 )
@@ -391,3 +392,37 @@ class TestIntegration:
 
         frontier = config.economics.tiers["frontier"]
         assert frontier.cost_factor == 30
+
+
+class TestGetLLMProviderMode:
+    """Test get_llm_provider_mode helper."""
+
+    def test_env_var_takes_priority(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """OUROBOROS_LLM_PROVIDER takes precedence over config."""
+        monkeypatch.setenv("OUROBOROS_LLM_PROVIDER", "codex")
+        assert get_llm_provider_mode() == "codex"
+
+    def test_invalid_env_falls_back_to_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Invalid env value falls back to config orchestrator.llm_provider."""
+        monkeypatch.setenv("OUROBOROS_LLM_PROVIDER", "invalid")
+
+        config = OuroborosConfig(orchestrator={"llm_provider": "litellm"})
+        monkeypatch.setattr("ouroboros.config.loader.load_config", lambda: config)
+
+        assert get_llm_provider_mode() == "litellm"
+
+    def test_config_error_falls_back_to_default(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Missing/invalid config falls back to claude_code default."""
+        monkeypatch.delenv("OUROBOROS_LLM_PROVIDER", raising=False)
+
+        def _raise() -> OuroborosConfig:
+            raise ConfigError("missing")
+
+        monkeypatch.setattr("ouroboros.config.loader.load_config", _raise)
+        assert get_llm_provider_mode() == "claude_code"
