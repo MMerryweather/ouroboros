@@ -16,7 +16,7 @@ How to see it working after implementation:
 - [x] (2026-03-06 13:28 UTC) Create preflight gate artifacts proving local runtime/tooling/auth prerequisites for Codex-native execution.
 - [ ] Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
 - [x] (2026-03-06 13:33 UTC) Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
-- [ ] Implement command routing and skill/agent loading changes for Codex-native invocation.
+- [x] (2026-03-06 13:40 UTC) Implement command routing and skill/agent loading changes for Codex-native invocation.
 - [ ] Update setup flow and documentation to make Codex-native path primary and Claude-plugin path optional/legacy.
 - [ ] Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
 - [ ] Add and update unit/integration tests for new routing/provider/setup behavior.
@@ -39,6 +39,9 @@ Use timestamps when completing items, for example:
 
 - Observation: Directly extending `LiteLLMAdapter` preserved retry and request semantics, but provider labels from upstream errors required explicit normalization to satisfy the Codex contract.
   Evidence: Added `CodexAdapter` wrapper that rewrites all `Result.err` provider labels to `codex`; unit tests in `tests/unit/providers/test_codex_adapter.py` verify normalized provider mapping and auth gating.
+
+- Observation: PKG-2 unit tests initially failed in sandboxed execution because registry imports initialize file logging under `~/.ouroboros/logs`, which is read-only in this context.
+  Evidence: First `pytest tests/unit/plugin/skills/test_registry.py -v` run failed at collection with `OSError: [Errno 30] Read-only file system`; elevated retry passed and was recorded in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/pkg-2-tests.txt`.
 
 ## Decision Log
 
@@ -64,6 +67,10 @@ Use timestamps when completing items, for example:
 
 - Decision: Implement Codex as a strict wrapper over `LiteLLMAdapter` instead of introducing a new SDK-specific adapter.
   Rationale: This preserves existing retry behavior and request construction while enforcing Codex-specific auth/error contracts (`OPENAI_API_KEY` requirement and `ProviderError(provider="codex")` normalization).
+  Date/Author: 2026-03-06 / Building Agent
+
+- Decision: Enforce deterministic skill routing in PKG-2 by applying contract-priority ordering and stable tie-break logic (longest match first, then lexical skill name).
+  Rationale: Existing routing behavior depended on dictionary/set iteration order and confidence-only sorting, which could produce non-deterministic selection under multiple trigger matches.
   Date/Author: 2026-03-06 / Building Agent
 
 ## Outcomes & Retrospective

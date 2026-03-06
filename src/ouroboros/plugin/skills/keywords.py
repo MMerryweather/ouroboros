@@ -1,10 +1,9 @@
 """Magic keyword detection for skill routing.
 
 This module provides:
-- Magic keyword detection in user messages
-- Priority-based matching (specific > general)
-- Prefix detection (e.g., "ooo", "ouroboros:")
-- Pattern-based routing to skills
+- Command-prefix detection in user messages
+- Priority-based matching with deterministic tie-breaking
+- Trigger-keyword routing when no prefix route is selected
 - Fallback handling for no matches
 """
 
@@ -58,16 +57,11 @@ class KeywordMatch:
 class MagicKeywordDetector:
     """Detects magic keywords and routes to appropriate skills.
 
-    The detector analyzes user input for:
-    1. Magic prefixes (e.g., "ooo run", "/ouroboros:interview")
-    2. Natural language triggers (e.g., "clarify requirements")
-    3. Pattern-based matches
-
-    Routing priority:
-    1. Exact prefix matches (highest)
-    2. Partial prefix matches
-    3. Trigger keyword matches
-    4. No match (fallback)
+    Routing contract:
+    1. `ooo <subcommand>` at message start
+    2. bare `ooo` -> `welcome`
+    3. trigger keywords only when no prefix route exists
+    Tie-breaker: longest match first, then lexical skill name.
     """
 
     # Common magic prefix patterns
@@ -97,21 +91,12 @@ class MagicKeywordDetector:
         Returns:
             List of keyword matches, sorted by confidence (highest first).
         """
-        matches: list[KeywordMatch] = []
-
-        # Check for exact prefix matches first
         prefix_matches = self._detect_prefixes(user_input)
-        matches.extend(prefix_matches)
+        if prefix_matches:
+            return self._sort_matches(prefix_matches)
 
-        # Check for trigger keyword matches
-        if not prefix_matches:
-            trigger_matches = self._detect_triggers(user_input)
-            matches.extend(trigger_matches)
-
-        # Sort by confidence (prefix matches have higher confidence)
-        matches.sort(key=lambda m: m.confidence, reverse=True)
-
-        return matches
+        trigger_matches = self._detect_triggers(user_input)
+        return self._sort_matches(trigger_matches)
 
     def detect_best(self, user_input: str) -> KeywordMatch | None:
         """Detect the single best matching skill.
@@ -135,45 +120,56 @@ class MagicKeywordDetector:
             List of prefix matches.
         """
         matches: list[KeywordMatch] = []
+        stripped = user_input.strip()
+        lowered = stripped.lower()
 
-        # Try each compiled pattern
+        # Contract (1): explicit `ooo <subcommand>` at message start.
+        start_match = re.match(r"^ooo\s+([a-z0-9_-]+)\b", lowered)
+        if start_match:
+            skill_name = start_match.group(1)
+            if self._registry.get_skill(skill_name):
+                return [
+                    KeywordMatch(
+                        skill_name=skill_name,
+                        match_type=MatchType.EXACT_PREFIX,
+                        matched_text=start_match.group(0),
+                        confidence=1.0,
+                    )
+                ]
+
+        # Contract (2): bare `ooo` routes to welcome.
+        if lowered == "ooo" and self._registry.get_skill("welcome"):
+            return [
+                KeywordMatch(
+                    skill_name="welcome",
+                    match_type=MatchType.EXACT_PREFIX,
+                    matched_text=stripped,
+                    confidence=1.0,
+                )
+            ]
+
+        # Backward-compatible prefix patterns (lower precedence than explicit contract path).
         for pattern in self._compiled_patterns:
             for match in pattern.finditer(user_input):
                 groups = match.groups()
-                # Extract skill name from match
                 skill_name = None
                 for group in groups:
-                    if group and group.isalpha():
-                        # Check if this is a registered skill
-                        if self._registry.get_skill(group):
-                            skill_name = group
+                    if group and re.fullmatch(r"[a-zA-Z0-9_-]+", group):
+                        candidate = group.lower()
+                        if self._registry.get_skill(candidate):
+                            skill_name = candidate
                             break
 
                 if skill_name:
-                    skill = self._registry.get_skill(skill_name)
-                    if skill:
-                        matches.append(
-                            KeywordMatch(
-                                skill_name=skill_name,
-                                match_type=MatchType.EXACT_PREFIX,
-                                matched_text=match.group(0),
-                                confidence=1.0,  # Exact prefix = highest confidence
-                                metadata={"pattern": pattern.pattern},
-                            )
+                    matches.append(
+                        KeywordMatch(
+                            skill_name=skill_name,
+                            match_type=MatchType.PARTIAL_PREFIX,
+                            matched_text=match.group(0),
+                            confidence=0.9,
+                            metadata={"pattern": pattern.pattern},
                         )
-
-        # Check for "ooo" bare command (welcome skill)
-        if user_input.strip().lower() in ("ooo", "/ouroboros", "ouroboros"):
-            welcome_skill = self._registry.get_skill("welcome")
-            if welcome_skill:
-                matches.append(
-                    KeywordMatch(
-                        skill_name="welcome",
-                        match_type=MatchType.EXACT_PREFIX,
-                        matched_text=user_input.strip(),
-                        confidence=1.0,
                     )
-                )
 
         return matches
 
@@ -192,11 +188,12 @@ class MagicKeywordDetector:
         # Get all skills with trigger keywords
         all_metadata = self._registry.get_all_metadata()
 
-        for skill_name, metadata in all_metadata.items():
+        for skill_name in sorted(all_metadata):
+            metadata = all_metadata[skill_name]
             if not metadata.trigger_keywords:
                 continue
 
-            for keyword in metadata.trigger_keywords:
+            for keyword in sorted(metadata.trigger_keywords, key=lambda k: (-len(k), k.lower())):
                 keyword_lower = keyword.lower()
                 if keyword_lower in input_lower:
                     # Calculate confidence based on match specificity
@@ -216,6 +213,23 @@ class MagicKeywordDetector:
                     )
 
         return matches
+
+    def _sort_matches(self, matches: list[KeywordMatch]) -> list[KeywordMatch]:
+        """Sort matches by contract priority and deterministic tie-breakers."""
+        priority = {
+            MatchType.EXACT_PREFIX: 3,
+            MatchType.PARTIAL_PREFIX: 2,
+            MatchType.TRIGGER_KEYWORD: 1,
+            MatchType.FALLBACK: 0,
+        }
+        return sorted(
+            matches,
+            key=lambda m: (
+                -priority.get(m.match_type, 0),
+                -len(m.matched_text),
+                m.skill_name,
+            ),
+        )
 
     def _calculate_trigger_confidence(
         self,

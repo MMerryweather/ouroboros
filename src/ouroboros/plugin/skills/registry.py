@@ -1,7 +1,7 @@
 """Skill Registry with auto-discovery and hot-reload.
 
 This module provides a skill registry that:
-- Auto-discovers skills from .claude-plugin/skills/ directory
+- Auto-discovers skills from `skills/` directory
 - Hot-reloads skills when SKILL.md files change
 - Validates skill metadata from frontmatter
 - Provides trigger pattern matching for magic keywords
@@ -151,7 +151,7 @@ else:
 class SkillRegistry:
     """Auto-discovering, hot-reloading skill registry.
 
-    The registry scans .claude-plugin/skills/ for skill definitions,
+    The registry scans `skills/` for skill definitions,
     parses SKILL.md frontmatter, and maintains an index of
     trigger patterns for fast matching.
 
@@ -168,7 +168,7 @@ class SkillRegistry:
         """Initialize the skill registry.
 
         Args:
-            skill_dir: Path to skills directory. Defaults to .claude-plugin/skills/.
+            skill_dir: Path to skills directory. Defaults to `skills/`.
         """
         self._skill_dir = skill_dir or self.DEFAULT_SKILL_DIR
         self._skills: dict[str, SkillInstance] = {}
@@ -258,14 +258,17 @@ class SkillRegistry:
             # Direct prefix match
             if prefix in self._prefix_index:
                 skill_names = self._prefix_index[prefix]
-                return [
-                    self._skills[name].metadata
-                    for name in skill_names
-                    if self._skills[name].is_loaded
-                ]
+                return sorted(
+                    [
+                        self._skills[name].metadata
+                        for name in skill_names
+                        if self._skills[name].is_loaded
+                    ],
+                    key=lambda metadata: metadata.name,
+                )
 
             # Substring match for shorter prefixes
-            matches = []
+            matches: list[SkillMetadata] = []
             prefix_lower = prefix.lower()
             for _skill_name, instance in self._skills.items():
                 if not instance.is_loaded:
@@ -275,7 +278,7 @@ class SkillRegistry:
                         matches.append(instance.metadata)
                         break
 
-            return matches
+            return sorted(matches, key=lambda metadata: metadata.name)
 
     def find_by_trigger_keyword(self, text: str) -> list[SkillMetadata]:
         """Find skills matching trigger keywords in text.
@@ -284,21 +287,35 @@ class SkillRegistry:
             text: The text to search for trigger keywords.
 
         Returns:
-            List of matching skill metadata.
+            List of matching skill metadata sorted by deterministic tie-breakers:
+            longest matched keyword first, then lexical skill name.
         """
         with self._lock:
             text_lower = text.lower()
-            matched_names: set[str] = set()
+            matched_keyword_len_by_skill: dict[str, int] = {}
 
             for keyword, skill_names in self._trigger_index.items():
-                if keyword.lower() in text_lower:
-                    matched_names.update(skill_names)
+                keyword_lower = keyword.lower()
+                if keyword_lower not in text_lower:
+                    continue
+                keyword_len = len(keyword_lower)
+                for skill_name in skill_names:
+                    previous = matched_keyword_len_by_skill.get(skill_name, 0)
+                    if keyword_len > previous:
+                        matched_keyword_len_by_skill[skill_name] = keyword_len
 
+            ordered_names = sorted(
+                matched_keyword_len_by_skill,
+                key=lambda skill_name: (
+                    -matched_keyword_len_by_skill[skill_name],
+                    skill_name,
+                ),
+            )
             return [
-                self._skills[name].metadata
-                for name in matched_names
-                if name in self._skills and self._skills[name].is_loaded
-            ]
+                    self._skills[name].metadata
+                    for name in ordered_names
+                    if name in self._skills and self._skills[name].is_loaded
+                ]
 
     async def reload_skill(self, skill_path: Path) -> Result[SkillInstance, str]:
         """Hot-reload a skill from its path.

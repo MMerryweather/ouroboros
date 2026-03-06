@@ -23,6 +23,7 @@ from ouroboros.plugin.skills.registry import (
     SkillMode,
     SkillRegistry,
 )
+from ouroboros.plugin.skills.keywords import MatchType, route_to_skill
 
 
 class TestSkillMode:
@@ -662,3 +663,143 @@ class TestSkillRegistryStopWatcher:
 
         # Should not raise exception
         registry.stop_watcher()
+
+
+class TestRoutingPrecedenceContract:
+    """Test PKG-2 routing precedence and tie-break behavior."""
+
+    async def test_prefix_ooo_subcommand_at_start_takes_precedence(self) -> None:
+        """`ooo <subcommand>` at start outranks trigger keywords."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = Path(tmpdir) / "skills"
+            skill_dir.mkdir()
+
+            help_skill = skill_dir / "help"
+            help_skill.mkdir()
+            (help_skill / "SKILL.md").write_text("# Help")
+
+            interview_skill = skill_dir / "interview"
+            interview_skill.mkdir()
+            (interview_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - help
+  - clarify requirements
+---
+# Interview
+"""
+            )
+
+            registry = SkillRegistry(skill_dir=skill_dir)
+            await registry.discover_all()
+
+            skill_name, match_type = route_to_skill("ooo help please", registry)
+            assert skill_name == "help"
+            assert match_type == MatchType.EXACT_PREFIX
+
+    async def test_bare_ooo_routes_to_welcome(self) -> None:
+        """Bare `ooo` routes to welcome."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = Path(tmpdir) / "skills"
+            skill_dir.mkdir()
+
+            welcome_skill = skill_dir / "welcome"
+            welcome_skill.mkdir()
+            (welcome_skill / "SKILL.md").write_text("# Welcome")
+
+            registry = SkillRegistry(skill_dir=skill_dir)
+            await registry.discover_all()
+
+            skill_name, match_type = route_to_skill("ooo", registry)
+            assert skill_name == "welcome"
+            assert match_type == MatchType.EXACT_PREFIX
+
+    async def test_trigger_keywords_apply_only_without_prefix_match(self) -> None:
+        """Trigger keywords are used when no prefix route exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = Path(tmpdir) / "skills"
+            skill_dir.mkdir()
+
+            interview_skill = skill_dir / "interview"
+            interview_skill.mkdir()
+            (interview_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - clarify requirements
+---
+# Interview
+"""
+            )
+
+            registry = SkillRegistry(skill_dir=skill_dir)
+            await registry.discover_all()
+
+            skill_name, match_type = route_to_skill(
+                "Please clarify requirements for my project.",
+                registry,
+            )
+            assert skill_name == "interview"
+            assert match_type == MatchType.TRIGGER_KEYWORD
+
+    async def test_tie_breaker_prefers_longest_then_lexical(self) -> None:
+        """Tie-break is longest match first, then lexical skill name."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = Path(tmpdir) / "skills"
+            skill_dir.mkdir()
+
+            short_skill = skill_dir / "alpha"
+            short_skill.mkdir()
+            (short_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - build
+---
+# Alpha
+"""
+            )
+
+            long_skill = skill_dir / "beta"
+            long_skill.mkdir()
+            (long_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - build app
+---
+# Beta
+"""
+            )
+
+            lex_a_skill = skill_dir / "aardvark"
+            lex_a_skill.mkdir()
+            (lex_a_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - deploy now
+---
+# Aardvark
+"""
+            )
+
+            lex_z_skill = skill_dir / "zebra"
+            lex_z_skill.mkdir()
+            (lex_z_skill / "SKILL.md").write_text(
+                """---
+triggers:
+  - deploy now
+---
+# Zebra
+"""
+            )
+
+            registry = SkillRegistry(skill_dir=skill_dir)
+            await registry.discover_all()
+
+            # Longest trigger keyword wins.
+            longest_skill, longest_type = route_to_skill("please build app today", registry)
+            assert longest_skill == "beta"
+            assert longest_type == MatchType.TRIGGER_KEYWORD
+
+            # Same-length trigger keywords: lexical skill name wins.
+            lexical_skill, lexical_type = route_to_skill("we should deploy now", registry)
+            assert lexical_skill == "aardvark"
+            assert lexical_type == MatchType.TRIGGER_KEYWORD
