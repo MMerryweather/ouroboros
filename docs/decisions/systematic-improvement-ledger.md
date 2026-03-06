@@ -1,7 +1,7 @@
 # Systematic Improvement Ledger
 
 ### `sil-20260306-01`
-- Run key: `docs/exec-plans/active/20260306-port-claude-plugin-to-native-chatgpt-codex.md::d90a334::apply`
+- Run key: `docs/exec-plans/completed/20260306-port-claude-plugin-to-native-chatgpt-codex.md::d90a334::apply`
 - Run mode: `apply`
 - Plans analyzed: current active implementation plan + 0 completed plans (history_n target: 20, available: 0)
 - Classes detected:
