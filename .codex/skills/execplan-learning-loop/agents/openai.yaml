@@ -1,0 +1,3 @@
+interface:
+  display_name: "ExecPlan Learning Loop"
+  short_description: "Systematic learning and continuous improvement from completed implementation exec plans"
