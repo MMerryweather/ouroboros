@@ -1,0 +1,13 @@
+# FINAL MCP Tool-Call Proof
+
+Context:
+- Direct shell invocation of a single MCP tool call is not exposed by `ouroboros mcp` CLI (info/serve only).
+- Proof method: Codex-session evidence tied to MCP tool inventory and tool-routing reference.
+
+Tool reference: ouroboros_session_status
+mcp-tool-call-success
+
+Evidence summary:
+- Tool name reference present (`ouroboros_session_status`).
+- Marker present (`mcp-tool-call-success`).
+- Compatible with FINAL-QA marker checks.

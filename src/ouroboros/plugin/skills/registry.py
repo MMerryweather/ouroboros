@@ -312,10 +312,10 @@ class SkillRegistry:
                 ),
             )
             return [
-                    self._skills[name].metadata
-                    for name in ordered_names
-                    if name in self._skills and self._skills[name].is_loaded
-                ]
+                self._skills[name].metadata
+                for name in ordered_names
+                if name in self._skills and self._skills[name].is_loaded
+            ]
 
     async def reload_skill(self, skill_path: Path) -> Result[SkillInstance, str]:
         """Hot-reload a skill from its path.
