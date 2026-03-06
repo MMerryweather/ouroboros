@@ -1,0 +1,140 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- /home/mat/Documents/ouroboros/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/mat/Documents/ouroboros
+configfile: pyproject.toml
+plugins: cov-7.0.0, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 113 items
+
+tests/unit/providers/test_base.py::TestMessageRole::test_message_role_values PASSED [  0%]
+tests/unit/providers/test_base.py::TestMessageRole::test_message_role_is_str PASSED [  1%]
+tests/unit/providers/test_base.py::TestMessage::test_message_creation PASSED [  2%]
+tests/unit/providers/test_base.py::TestMessage::test_message_is_frozen PASSED [  3%]
+tests/unit/providers/test_base.py::TestMessage::test_message_to_dict PASSED [  4%]
+tests/unit/providers/test_base.py::TestMessage::test_message_to_dict_all_roles PASSED [  5%]
+tests/unit/providers/test_base.py::TestCompletionConfig::test_completion_config_defaults PASSED [  6%]
+tests/unit/providers/test_base.py::TestCompletionConfig::test_completion_config_custom_values PASSED [  7%]
+tests/unit/providers/test_base.py::TestCompletionConfig::test_completion_config_is_frozen PASSED [  7%]
+tests/unit/providers/test_base.py::TestUsageInfo::test_usage_info_creation PASSED [  8%]
+tests/unit/providers/test_base.py::TestUsageInfo::test_usage_info_is_frozen PASSED [  9%]
+tests/unit/providers/test_base.py::TestCompletionResponse::test_completion_response_creation PASSED [ 10%]
+tests/unit/providers/test_base.py::TestCompletionResponse::test_completion_response_custom_finish_reason PASSED [ 11%]
+tests/unit/providers/test_base.py::TestCompletionResponse::test_completion_response_with_raw_response PASSED [ 12%]
+tests/unit/providers/test_base.py::TestCompletionResponse::test_completion_response_is_frozen PASSED [ 13%]
+tests/unit/providers/test_base.py::TestLLMAdapterProtocol::test_protocol_is_importable PASSED [ 14%]
+tests/unit/providers/test_base.py::TestLLMAdapterProtocol::test_protocol_type_hints PASSED [ 15%]
+tests/unit/providers/test_codex_adapter.py::TestCodexAdapter::test_requires_openai_api_key PASSED [ 15%]
+tests/unit/providers/test_codex_adapter.py::TestCodexAdapter::test_passes_model_through_unchanged PASSED [ 16%]
+tests/unit/providers/test_codex_adapter.py::TestCodexAdapter::test_normalizes_provider_errors_to_codex PASSED [ 17%]
+tests/unit/providers/test_codex_adapter.py::TestCodexAdapter::test_maps_unexpected_delegate_exception PASSED [ 18%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterInit::test_init_defaults PASSED [ 19%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterInit::test_init_custom_values PASSED [ 20%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_explicit_api_key_takes_priority PASSED [ 21%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_openrouter_model_uses_openrouter_key PASSED [ 22%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_anthropic_model_uses_anthropic_key PASSED [ 23%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_claude_prefix_uses_anthropic_key PASSED [ 23%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_openai_model_uses_openai_key PASSED [ 24%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_gpt_prefix_uses_openai_key PASSED [ 25%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_unknown_model_defaults_to_openrouter PASSED [ 26%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterGetApiKey::test_missing_env_var_returns_none PASSED [ 27%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterBuildCompletionKwargs::test_builds_basic_kwargs PASSED [ 28%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterBuildCompletionKwargs::test_includes_stop_sequences PASSED [ 29%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterBuildCompletionKwargs::test_includes_api_key_when_available PASSED [ 30%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterBuildCompletionKwargs::test_includes_api_base_when_set PASSED [ 30%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterParseResponse::test_parses_successful_response PASSED [ 31%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterParseResponse::test_handles_empty_content PASSED [ 32%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterParseResponse::test_handles_missing_usage PASSED [ 33%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterParseResponse::test_uses_config_model_when_response_model_missing PASSED [ 34%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterExtractProvider::test_extracts_openrouter_provider PASSED [ 35%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterExtractProvider::test_extracts_anthropic_provider PASSED [ 36%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterExtractProvider::test_infers_openai_from_gpt_prefix PASSED [ 37%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterExtractProvider::test_infers_anthropic_from_claude_prefix PASSED [ 38%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterExtractProvider::test_unknown_model_returns_unknown PASSED [ 38%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_successful_completion PASSED [ 39%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_rate_limit_error_returns_result_err PASSED [ 40%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_api_error_returns_result_err PASSED [ 41%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_auth_error_returns_result_err PASSED [ 42%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_bad_request_error_returns_result_err PASSED [ 43%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_unexpected_error_returns_result_err PASSED [ 44%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_openrouter_model_routing PASSED [ 45%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_result_contains_usage_info PASSED [ 46%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterRetryBehavior::test_retries_on_rate_limit PASSED [ 46%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterRetryBehavior::test_retries_on_service_unavailable PASSED [ 47%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterRetryBehavior::test_retries_on_timeout PASSED [ 48%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterRetryBehavior::test_retries_on_connection_error PASSED [ 49%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterRetryBehavior::test_gives_up_after_max_retries PASSED [ 50%]
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterProtocolCompliance::test_implements_llm_adapter_protocol PASSED [ 51%]
+tests/unit/plugin/skills/test_registry.py::TestSkillMode::test_plugin_mode_exists PASSED [ 52%]
+tests/unit/plugin/skills/test_registry.py::TestSkillMode::test_mcp_mode_exists PASSED [ 53%]
+tests/unit/plugin/skills/test_registry.py::TestSkillMetadata::test_create_minimal_metadata PASSED [ 53%]
+tests/unit/plugin/skills/test_registry.py::TestSkillMetadata::test_create_full_metadata PASSED [ 54%]
+tests/unit/plugin/skills/test_registry.py::TestSkillMetadata::test_metadata_is_frozen PASSED [ 55%]
+tests/unit/plugin/skills/test_registry.py::TestSkillInstance::test_create_skill_instance PASSED [ 56%]
+tests/unit/plugin/skills/test_registry.py::TestSkillInstance::test_skill_instance_default_is_loaded PASSED [ 57%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryInit::test_registry_initializes_empty PASSED [ 58%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryInit::test_default_skill_dir PASSED [ 59%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryInit::test_custom_skill_dir PASSED [ 60%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryInit::test_is_watching_initially_false PASSED [ 61%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryDiscoverAll::test_discover_all_nonexistent_dir_returns_empty PASSED [ 61%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryDiscoverAll::test_discover_all_loads_skills PASSED [ 62%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryDiscoverAll::test_discover_all_sets_discovery_complete PASSED [ 63%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryDiscoverAll::test_discover_all_indexes_triggers PASSED [ 64%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryGetAllMetadata::test_get_all_metadata_returns_loaded_skills_only PASSED [ 65%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryGetSkill::test_get_skill_returns_loaded_skill PASSED [ 66%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryGetSkill::test_get_skill_returns_none_for_unloaded PASSED [ 67%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryGetSkill::test_get_skill_returns_none_for_nonexistent PASSED [ 68%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByMagicPrefix::test_find_by_exact_magic_prefix PASSED [ 69%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByMagicPrefix::test_find_by_substring_prefix PASSED [ 69%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByMagicPrefix::test_find_by_magic_prefix_case_insensitive PASSED [ 70%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByTriggerKeyword::test_find_by_exact_trigger_keyword PASSED [ 71%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByTriggerKeyword::test_find_by_trigger_keyword_in_text PASSED [ 72%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryFindByTriggerKeyword::test_find_by_trigger_keyword_case_insensitive PASSED [ 73%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryReloadSkill::test_reload_skill_updates_instance PASSED [ 74%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryReloadSkill::test_reload_skill_with_directory_path PASSED [ 75%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryReloadSkill::test_reload_skill_nonexistent_returns_error PASSED [ 76%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryParseSkillMd::test_parse_skill_md_with_frontmatter PASSED [ 76%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryParseSkillMd::test_parse_skill_md_without_frontmatter PASSED [ 77%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryParseSkillMd::test_parse_skill_md_extracts_sections PASSED [ 78%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryParseSkillMd::test_parse_skill_md_extracts_first_line_from_heading PASSED [ 79%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryExtractMagicPrefixes::test_extract_magic_prefixes_from_frontmatter PASSED [ 80%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryExtractMagicPrefixes::test_extract_magic_prefixes_auto_generates PASSED [ 81%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryExtractMagicPrefixes::test_extract_magic_prefixes_single_string PASSED [ 82%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryIndexSkill::test_index_skill_indexes_triggers PASSED [ 83%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryIndexSkill::test_index_skill_indexes_prefixes PASSED [ 84%]
+tests/unit/plugin/skills/test_registry.py::TestSkillRegistryStopWatcher::test_stop_watcher_without_start PASSED [ 84%]
+tests/unit/plugin/skills/test_registry.py::TestRoutingPrecedenceContract::test_prefix_ooo_subcommand_at_start_takes_precedence PASSED [ 85%]
+tests/unit/plugin/skills/test_registry.py::TestRoutingPrecedenceContract::test_bare_ooo_routes_to_welcome PASSED [ 86%]
+tests/unit/plugin/skills/test_registry.py::TestRoutingPrecedenceContract::test_trigger_keywords_apply_only_without_prefix_match PASSED [ 87%]
+tests/unit/plugin/skills/test_registry.py::TestRoutingPrecedenceContract::test_tie_breaker_prefers_longest_then_lexical PASSED [ 88%]
+tests/integration/plugin/test_orchestration.py::TestAgentPoolIntegration::test_agent_pool_lifecycle PASSED [ 89%]
+tests/integration/plugin/test_orchestration.py::TestAgentPoolIntegration::test_agent_pool_scaling PASSED [ 90%]
+tests/integration/plugin/test_orchestration.py::TestAgentRegistryIntegration::test_registry_full_workflow PASSED [ 91%]
+tests/integration/plugin/test_orchestration.py::TestAgentRegistryIntegration::test_registry_with_temp_custom_agents PASSED [ 92%]
+tests/integration/plugin/test_orchestration.py::TestSkillRegistryIntegration::test_skill_registry_discovery_workflow PASSED [ 92%]
+tests/integration/plugin/test_orchestration.py::TestSkillRegistryIntegration::test_skill_hot_reload PASSED [ 93%]
+tests/integration/plugin/test_orchestration.py::TestModelRouterIntegration::test_router_with_learning PASSED [ 94%]
+tests/integration/plugin/test_orchestration.py::TestModelRouterIntegration::test_router_escalation_workflow PASSED [ 95%]
+tests/integration/plugin/test_orchestration.py::TestModelRouterIntegration::test_router_cost_optimization PASSED [ 96%]
+tests/integration/plugin/test_orchestration.py::TestStateManagerIntegration::test_session_lifecycle PASSED [ 97%]
+tests/integration/plugin/test_orchestration.py::TestStateManagerIntegration::test_auto_checkpoint_workflow PASSED [ 98%]
+tests/integration/plugin/test_orchestration.py::TestEndToEndWorkflow::test_full_plugin_workflow PASSED [ 99%]
+tests/integration/test_entry_point.py::test_main_module_entry_point PASSED [100%]
+
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/litellm/litellm_core_utils/logging_utils.py:273: 15 warnings
+  /home/mat/Documents/ouroboros/.venv/lib/python3.14/site-packages/litellm/litellm_core_utils/logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_unexpected_error_returns_result_err
+  /home/mat/Documents/ouroboros/.venv/lib/python3.14/site-packages/structlog/_base.py:173: UserWarning: Remove `format_exc_info` from your processor chain if you want pretty exceptions.
+    event_dict = proc(self._logger, method_name, event_dict)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+====================== 113 passed, 16 warnings in 16.73s =======================
+
+retry_record:
+  attempt_1: FAIL
+  failure_reason: sandbox filesystem blocked ~/.ouroboros/logs/ouroboros.log during test collection (OSError Errno 30)
+  attempt_2: PASS
+  retry_context: elevated execution context with home-directory write access

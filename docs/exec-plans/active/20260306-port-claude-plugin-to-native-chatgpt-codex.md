@@ -14,13 +14,13 @@ How to see it working after implementation:
 ## Progress
 
 - [x] (2026-03-06 13:28 UTC) Create preflight gate artifacts proving local runtime/tooling/auth prerequisites for Codex-native execution.
-- [ ] Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
+- [x] (2026-03-06 13:28 UTC) Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
 - [x] (2026-03-06 13:33 UTC) Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
 - [x] (2026-03-06 13:40 UTC) Implement command routing and skill/agent loading changes for Codex-native invocation.
 - [x] (2026-03-06 13:43 UTC) Update setup flow and documentation to make Codex-native path primary and Claude-plugin path optional/legacy.
-- [ ] Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
-- [ ] Add and update unit/integration tests for new routing/provider/setup behavior.
-- [ ] Run integration checkpoints after each parallel batch and record required artifacts.
+- [x] (2026-03-06 13:46 UTC) Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
+- [x] (2026-03-06 13:46 UTC) Add and update unit/integration tests for new routing/provider/setup behavior.
+- [x] (2026-03-06 13:46 UTC) Run integration checkpoints after each parallel batch and record required artifacts.
 - [ ] Run PR-style review and apply fixes.
 - [ ] Run in-session test-review checklist and record status artifact.
 - [ ] Run fresh post-review quality gates on HEAD and record fresh evidence artifacts.
@@ -45,6 +45,12 @@ Use timestamps when completing items, for example:
 
 - Observation: Primary-path marker guardrails were absent from all required docs before PKG-3, so automated doc audits could not prove Codex-first guidance boundaries.
   Evidence: Added marker pairs to `README.md`, `docs/getting-started.md`, and `docs/running-with-codex.md`, plus legacy markers in `docs/running-with-claude-code.md`; audit results are in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/pkg-3-doc-audit.txt`.
+
+- Observation: CP-1 integration checkpoint initially failed in sandbox due read-only home logging paths; rerun in elevated context passed all selected suites.
+  Evidence: First run failed with `OSError: [Errno 30] Read-only file system: '/home/mat/.ouroboros/logs/ouroboros.log'`; second run passed `113 passed` and was recorded in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/checkpoint-1-integration.txt`.
+
+- Observation: Codex-only guardrail initially failed due banned legacy phrase in a primary-path block, requiring a wording-only documentation correction.
+  Evidence: Guardrail failure and pass retry are captured in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/codex-only-guardrail.txt` with `guardrail-pass: primary-path blocks are Codex-only`.
 
 ## Decision Log
 
@@ -78,6 +84,14 @@ Use timestamps when completing items, for example:
 
 - Decision: Make `docs/running-with-codex.md` the canonical runtime guide and reduce Claude-specific instructions to explicitly labeled legacy compatibility docs.
   Rationale: PKG-3 contract requires Codex-native as primary with marker-scoped guardrails and optional Claude path only.
+  Date/Author: 2026-03-06 / Building Agent
+
+- Decision: Complete CP-1 in PKG-4 by rerunning checkpoint tests in elevated context after sandbox-only filesystem failures, and record both attempts in checkpoint artifacts.
+  Rationale: CP-1 evidence must be boundary-true and non-empty; sandbox restrictions are execution-context issues rather than code regressions.
+  Date/Author: 2026-03-06 / Building Agent
+
+- Decision: Apply a minimal wording fix in `docs/running-with-codex.md` to remove banned legacy install phrasing from a primary-path marker block.
+  Rationale: Codex-only guardrail intentionally fails on legacy install strings in primary blocks; this fix was the minimum change to satisfy contract enforcement.
   Date/Author: 2026-03-06 / Building Agent
 
 ## Outcomes & Retrospective

@@ -47,7 +47,7 @@ Routing contract:
 
 ## Notes
 
-- Primary path does not require Claude plugin installation.
+- Primary path does not require legacy plugin installation.
 - `.claude-plugin/*` assets remain in the repository for legacy compatibility only.
 <!-- PRIMARY_PATH_END -->
 
