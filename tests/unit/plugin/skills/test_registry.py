@@ -17,13 +17,13 @@ import tempfile
 
 import pytest
 
+from ouroboros.plugin.skills.keywords import MatchType, route_to_skill
 from ouroboros.plugin.skills.registry import (
     SkillInstance,
     SkillMetadata,
     SkillMode,
     SkillRegistry,
 )
-from ouroboros.plugin.skills.keywords import MatchType, route_to_skill
 
 
 class TestSkillMode:

@@ -21,7 +21,7 @@ How to see it working after implementation:
 - [x] (2026-03-06 13:46 UTC) Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
 - [x] (2026-03-06 13:46 UTC) Add and update unit/integration tests for new routing/provider/setup behavior.
 - [x] (2026-03-06 13:46 UTC) Run integration checkpoints after each parallel batch and record required artifacts.
-- [ ] Run PR-style review and apply fixes.
+- [x] (2026-03-06 13:51 UTC) Run PR-style review and apply fixes.
 - [ ] Run in-session test-review checklist and record status artifact.
 - [ ] Run fresh post-review quality gates on HEAD and record fresh evidence artifacts.
 - [ ] Knowledge Harvest: classify each Surprise by issue class, encode durable fix into `AGENTS.md` or `docs/`, record in Outcomes & Retrospective > Knowledge Harvest.
@@ -51,6 +51,9 @@ Use timestamps when completing items, for example:
 
 - Observation: Codex-only guardrail initially failed due banned legacy phrase in a primary-path block, requiring a wording-only documentation correction.
   Evidence: Guardrail failure and pass retry are captured in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/codex-only-guardrail.txt` with `guardrail-pass: primary-path blocks are Codex-only`.
+
+- Observation: Post-implementation PR review found a lint regression in `tests/unit/plugin/skills/test_registry.py` import ordering, which would fail quality gates despite passing runtime tests.
+  Evidence: `uv run ruff check ...` reported `I001 Import block is un-sorted`; reordering imports fixed the issue and subsequent `ruff` + targeted `pytest` runs passed.
 
 ## Decision Log
 
