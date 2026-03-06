@@ -1,0 +1,7 @@
+guardrail-pass: primary-path blocks are Codex-only
+
+retry_record:
+  attempt_1: FAIL
+  failure_reason: banned pattern "claude plugin install" detected in primary-path block of docs/running-with-codex.md
+  attempt_2: PASS
+  retry_variable_changed: documentation primary-path wording only

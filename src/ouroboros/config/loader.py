@@ -323,3 +323,30 @@ def get_cli_path() -> str | None:
 
     # 3. Default: None (SDK uses bundled CLI)
     return None
+
+
+def get_llm_provider_mode() -> str:
+    """Get LLM provider mode from environment variable or config file.
+
+    Priority:
+        1. OUROBOROS_LLM_PROVIDER environment variable
+        2. config.yaml orchestrator.llm_provider
+        3. "claude_code" default
+
+    Returns:
+        One of "claude_code", "litellm", or "codex".
+    """
+    valid_modes = {"claude_code", "litellm", "codex"}
+
+    env_mode = os.environ.get("OUROBOROS_LLM_PROVIDER", "").strip().lower()
+    if env_mode in valid_modes:
+        return env_mode
+
+    try:
+        config = load_config()
+        if config.orchestrator.llm_provider in valid_modes:
+            return config.orchestrator.llm_provider
+    except ConfigError:
+        pass
+
+    return "claude_code"

@@ -13,6 +13,7 @@ from ouroboros.config.models import (
     ExecutionConfig,
     LoggingConfig,
     ModelConfig,
+    OrchestratorConfig,
     OuroborosConfig,
     PersistenceConfig,
     ProviderCredentials,
@@ -317,6 +318,25 @@ class TestDriftConfig:
         config = DriftConfig()
         assert config.warning_threshold == 0.3
         assert config.critical_threshold == 0.5
+
+
+class TestOrchestratorConfig:
+    """Test OrchestratorConfig provider mode settings."""
+
+    def test_orchestrator_config_default_provider(self) -> None:
+        """OrchestratorConfig defaults to claude_code provider mode."""
+        config = OrchestratorConfig()
+        assert config.llm_provider == "claude_code"
+
+    def test_orchestrator_config_accepts_codex_provider(self) -> None:
+        """OrchestratorConfig accepts codex provider mode."""
+        config = OrchestratorConfig(llm_provider="codex")
+        assert config.llm_provider == "codex"
+
+    def test_orchestrator_config_rejects_invalid_provider(self) -> None:
+        """OrchestratorConfig rejects invalid provider modes."""
+        with pytest.raises(ValidationError):
+            OrchestratorConfig(llm_provider="invalid")  # type: ignore[arg-type]
 
     def test_drift_critical_must_exceed_warning(self) -> None:
         """DriftConfig critical_threshold must be >= warning_threshold."""

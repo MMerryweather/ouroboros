@@ -1,0 +1,8 @@
+# Dry-run evidence (Codex session)
+context: codex-native chat session
+input: ooo help
+routing_result: skills/help/SKILL.md loaded from repository
+observed_behavior:
+- Help reference rendered for Ouroboros commands
+- No dependency on claude binary for command routing
+status: PASS

@@ -1,0 +1,146 @@
+
+[1mMCP Server Information[0m
+  Name: ouroboros-mcp
+  Version: [1m1.0[0m.[1m0[0m
+
+[1mCapabilities[0m
+  Tools: [3mTrue[0m
+  Resources: [3mFalse[0m
+  Prompts: [3mFalse[0m
+
+[1mAvailable Tools[0m
+  ouroboros_execute_seed
+    Execute a seed [1m([0mtask specification[1m)[0m in Ouroboros. A seed defines a task to 
+be executed with acceptance criteria.
+    Parameters:
+      - seed_content*: The seed content describing the task to execute
+      - session_id: Optional session ID to resume. If not provided, a new 
+session is created.
+      - model_tier: Model tier to use [1m([0msmall, medium, large[1m)[0m. Default: medium
+      - max_iterations: Maximum number of execution iterations. Default: [1m10[0m
+      - skip_qa: Skip post-execution QA evaluation. Default: false
+
+  ouroboros_session_status
+    Get the status of an Ouroboros session. Returns information about the 
+current phase, progress, and any errors.
+    Parameters:
+      - session_id*: The session ID to query
+
+  ouroboros_query_events
+    Query the event history for an Ouroboros session. Returns a list of events 
+matching the specified criteria.
+    Parameters:
+      - session_id: Filter events by session ID. If not provided, returns events
+across all sessions.
+      - event_type: Filter by event type [1m([0me.g., 'execution', 'evaluation', 
+'error'[1m)[0m
+      - limit: Maximum number of events to return. Default: [1m50[0m
+      - offset: Number of events to skip for pagination. Default: [1m0[0m
+
+  ouroboros_generate_seed
+    Generate an immutable Seed from a completed interview session. The seed 
+contains structured requirements [1m([0mgoal, constraints, acceptance criteria[1m)[0m 
+extracted from the interview conversation. Generation requires ambiguity_score 
+<= [1m0.2[0m.
+    Parameters:
+      - session_id*: Interview session ID to convert to a seed
+      - ambiguity_score: Ambiguity score for the interview [1m([0m[1m0.0[0m = clear, [1m1.0[0m = 
+ambiguous[1m)[0m. Required if interview didn't calculate it. Generation fails if > 
+[1m0.2[0m.
+
+  ouroboros_measure_drift
+    Measure drift from the original seed goal. Calculates goal deviation score 
+using weighted components: goal drift [1m([0m[1m50[0m%[1m)[0m, constraint drift [1m([0m[1m30[0m%[1m)[0m, ontology 
+drift [1m([0m[1m20[0m%[1m)[0m. Returns drift metrics, analysis, and suggestions if drift exceeds 
+threshold.
+    Parameters:
+      - session_id*: The execution session ID to measure drift for
+      - current_output*: Current execution output to measure drift against the 
+seed goal
+      - seed_content*: Original seed YAML content for drift calculation
+      - constraint_violations: Known constraint violations [1m([0me.g., [1m[[0m'Missing 
+tests', 'Wrong language'[1m][0m[1m)[0m
+      - current_concepts: Concepts present in the current output [1m([0mfor ontology 
+drift[1m)[0m
+
+  ouroboros_interview
+    Interactive interview for requirement clarification. Start a new interview 
+with initial_context, resume with session_id, or record an answer to the current
+question.
+    Parameters:
+      - initial_context: Initial context to start a new interview session
+      - session_id: Session ID to resume an existing interview
+      - answer: Response to the current interview question
+
+  ouroboros_evaluate
+    Evaluate an Ouroboros execution session using the three-stage evaluation 
+pipeline. Stage [1m1[0m performs mechanical verification [1m([0mlint, build, test[1m)[0m. Stage [1m2[0m 
+performs semantic evaluation of AC compliance and goal alignment. Stage [1m3[0m runs 
+multi-model consensus if triggered by uncertainty or manual request.
+    Parameters:
+      - session_id*: The execution session ID to evaluate
+      - artifact*: The execution output/artifact to evaluate
+      - seed_content: Original seed YAML for goal/constraints extraction
+      - acceptance_criterion: Specific acceptance criterion to evaluate against
+      - artifact_type: Type of artifact: code, docs, config. Default: code
+      - trigger_consensus: Force Stage [1m3[0m consensus evaluation. Default: [3mFalse[0m
+
+  ouroboros_lateral_think
+    Generate alternative thinking approaches using lateral thinking personas. 
+Use this tool when stuck on a problem to get fresh perspectives from different 
+thinking modes: hacker [1m([0munconventional workarounds[1m)[0m, researcher [1m([0mseeks 
+information[1m)[0m, simplifier [1m([0mreduces complexity[1m)[0m, architect [1m([0mrestructures 
+approach[1m)[0m, or contrarian [1m([0mchallenges assumptions[1m)[0m.
+    Parameters:
+      - problem_context*: Description of the stuck situation or problem
+      - current_approach*: What has been tried so far that isn't working
+      - persona: Specific persona to use: hacker, researcher, simplifier, 
+architect, or contrarian
+      - failed_attempts: Previous failed approaches to avoid repeating
+
+  ouroboros_evolve_step
+    Run exactly ONE generation of the evolutionary loop. For Gen [1m1[0m: provide 
+lineage_id and seed_content [1m([0mYAML[1m)[0m. For Gen [1m2[0m+: provide lineage_id only [1m([0mstate 
+reconstructed from events[1m)[0m. Returns generation result, convergence signal, and 
+next action [1m([0mcontinue/converged/stagnated/exhausted/failed[1m)[0m.
+    Parameters:
+      - lineage_id*: Lineage ID to continue or new ID for Gen [1m1[0m
+      - seed_content: Seed YAML content for Gen [1m1[0m. Omit for Gen [1m2[0m+ [1m([0mseed 
+reconstructed from events[1m)[0m.
+      - execute: Whether to run seed execution and evaluation. [3mTrue[0m [1m([0mdefault[1m)[0m: 
+full pipeline with Execute→Validate→Evaluate. [3mFalse[0m: ontology-only evolution 
+[1m([0mfast, no execution[1m)[0m.
+      - parallel: Whether to run ACs in parallel. [3mTrue[0m [1m([0mdefault[1m)[0m: parallel 
+execution [1m([0mfast, may cause import conflicts[1m)[0m. [3mFalse[0m: sequential execution 
+[1m([0mslower, more stable code generation[1m)[0m.
+      - skip_qa: Skip post-execution QA evaluation. Default: false
+
+  ouroboros_lineage_status
+    Query the current state of an evolutionary lineage. Returns generation 
+count, status, ontology evolution, and convergence progress.
+    Parameters:
+      - lineage_id*: ID of the lineage to query
+
+  ouroboros_evolve_rewind
+    Rewind an evolutionary lineage to a specific generation. Truncates all 
+generations after the target and emits a lineage.rewound event. The lineage can 
+then continue evolving from the rewind point.
+    Parameters:
+      - lineage_id*: ID of the lineage to rewind
+      - to_generation*: Generation number to rewind to [1m([0minclusive[1m)[0m
+
+  ouroboros_ac_dashboard
+    Display per-AC pass/fail compliance dashboard across generations. Shows 
+which acceptance criteria passed, failed, or are flaky. Modes: 'summary' 
+[1m([0mdefault[1m)[0m, 'full' [1m([0mAC x Gen matrix[1m)[0m, 'ac' [1m([0msingle AC history[1m)[0m.
+    Parameters:
+      - lineage_id*: ID of the lineage to display
+      - mode: Display mode: 'summary' [1m([0mdefault[1m)[0m, 'full', or 'ac'
+      - ac_index: AC index [1m([0m[1m1[0m-based[1m)[0m for 'ac' mode. Required when mode='ac'.
+
+
+retry_record:
+  attempt_1: FAIL
+  failure_reason: CLI log-dir creation under /home/mat/.ouroboros blocked by sandbox read-only filesystem
+  attempt_2: PASS
+  retry_context: elevated execution context with home-directory write access

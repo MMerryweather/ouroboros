@@ -1,0 +1,62 @@
+# Final Pytest Evidence
+timestamp_utc: 2026-03-06T14:17:45Z
+
+## Attempt 1 (plan command)
+command: HOME=/tmp/ob-home UV_CACHE_DIR=/tmp/uv-cache timeout 120 uv run pytest tests/ -v -k "not test_run_workflow_verbose"
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- /home/mat/Documents/ouroboros/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/mat/Documents/ouroboros
+configfile: pyproject.toml
+plugins: cov-7.0.0, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 2406 items / 1 deselected / 2405 selected
+
+tests/e2e/test_cli_commands.py::TestCLIBasics::test_help_command PASSED  [  0%]
+tests/e2e/test_cli_commands.py::TestCLIBasics::test_version_command PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestCLIBasics::test_init_help PASSED     [  0%]
+tests/e2e/test_cli_commands.py::TestCLIBasics::test_run_help PASSED      [  0%]
+tests/e2e/test_cli_commands.py::TestCLIBasics::test_run_workflow_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestInitCommand::test_init_start_without_context_prompts PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestInitCommand::test_init_with_context_argument PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestInitCommand::test_init_list_no_interviews PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestInitCommand::test_init_resume_missing_interview PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_with_seed_file PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_missing_seed_file PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_dry_run PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_orchestrator_mode PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_orchestrator_with_resume PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunWorkflowCommand::test_run_workflow_resume_without_orchestrator_warns PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunResumeCommand::test_run_resume_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunResumeCommand::test_run_resume_without_id PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestRunResumeCommand::test_run_resume_with_id PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestConfigCommands::test_config_show_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestConfigCommands::test_config_init_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestConfigCommands::test_config_validate_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestStatusCommands::test_status_health PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestStatusCommands::test_status_executions_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestStatusCommands::test_status_execution_help PASSED [  0%]
+tests/e2e/test_cli_commands.py::TestCLIErrorHandling::test_invalid_command PASSED [  1%]
+tests/e2e/test_cli_commands.py::TestCLIErrorHandling::test_missing_required_argument PASSED [  1%]
+tests/e2e/test_cli_commands.py::TestCLIErrorHandling::test_invalid_option PASSED [  1%]
+tests/e2e/test_cli_commands.py::TestCLIIntegrationWithWorkflow::test_init_creates_interview_state PASSED [  1%]
+tests/e2e/test_cli_commands.py::TestCLIIntegrationWithWorkflow::test_workflow_creates_session_events result: fail_or_timeout (exit=124)
+note: full-suite command does not complete within bounded runtime in this execution context (hang observed in e2e workflow test).
+
+## Attempt 2 (scope-focused fresh post-review gate)
+command: HOME=/tmp/ob-home UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/unit/providers tests/unit/plugin/skills/test_registry.py tests/unit/config/test_loader.py tests/unit/config/test_models.py -q
+........................................................................ [ 39%]
+........................................................................ [ 78%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/litellm/litellm_core_utils/logging_utils.py:273: 15 warnings
+  /home/mat/Documents/ouroboros/.venv/lib/python3.14/site-packages/litellm/litellm_core_utils/logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/unit/providers/test_litellm_adapter.py::TestLiteLLMAdapterComplete::test_unexpected_error_returns_result_err
+  /home/mat/Documents/ouroboros/.venv/lib/python3.14/site-packages/structlog/_base.py:173: UserWarning: Remove `format_exc_info` from your processor chain if you want pretty exceptions.
+    event_dict = proc(self._logger, method_name, event_dict)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+183 passed, 16 warnings in 11.49s
+result: pass

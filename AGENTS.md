@@ -1,11 +1,12 @@
 # Ouroboros - Development Environment
 
-> This CLAUDE.md is for **local development only**. End users install via:
+> Codex-native usage is the primary path for this repository.
+> Legacy Claude plugin installation remains optional:
 > ```
 > claude plugin marketplace add Q00/ouroboros
 > claude plugin install ouroboros@ouroboros
 > ```
-> Once installed as a plugin, skills/hooks/agents work natively without this file.
+> `.claude-plugin/*` is compatibility-only and must not be required for primary workflow execution.
 
 ## ooo Commands (Dev Mode)
 

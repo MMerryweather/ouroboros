@@ -229,6 +229,10 @@ class OrchestratorConfig(BaseModel, frozen=True):
     """Orchestrator configuration for Claude Agent SDK.
 
     Attributes:
+        llm_provider: Provider mode for orchestration LLM calls:
+            - "claude_code": Claude Code SDK adapter
+            - "litellm": LiteLLM multi-provider adapter
+            - "codex": Codex adapter (OPENAI_API_KEY auth)
         cli_path: Path to Claude CLI binary. Supports:
             - Absolute path: /path/to/my-claude-wrapper
             - ~ expansion: ~/.my-claude-wrapper/bin/my-claude-wrapper
@@ -236,6 +240,7 @@ class OrchestratorConfig(BaseModel, frozen=True):
         default_max_turns: Default max turns for agent execution
     """
 
+    llm_provider: Literal["claude_code", "litellm", "codex"] = "claude_code"
     cli_path: str | None = None
     default_max_turns: int = Field(default=10, ge=1)
 

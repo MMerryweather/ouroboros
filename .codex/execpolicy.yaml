@@ -1,0 +1,185 @@
+version: 1
+
+rules:
+  # -----------------------------
+  # Read-only filesystem inspection
+  # -----------------------------
+  - allow: { command: ls,   args: ["*"] }
+  - allow: { command: pwd,  args: ["*"] }
+  - allow: { command: stat, args: ["*"] }
+  - allow: { command: wc,   args: ["*"] }
+  - allow: { command: tree, args: ["*"] }
+
+  # Find files (read-only)
+  - allow: { command: find, args: ["*"] }
+
+  # Preview file contents (read-only)
+  - allow: { command: cat,  args: ["*"] }
+  - allow: { command: head, args: ["*"] }
+  - allow: { command: tail, args: ["*"] }
+
+  # Read-only text querying (prefer rg over grep)
+  - allow: { command: rg,   args: ["*"] }
+  - allow: { command: grep, args: ["*"] }
+
+  # Read-only slicing/printing (safe if you avoid in-place flags)
+  - allow: { command: sed,  args: ["*"] }
+  - allow: { command: awk,  args: ["*"] }
+
+  # -----------------------------
+  # Git (inspection + branching + commits + push)
+  # -----------------------------
+  - allow:
+      command: git
+      args:
+        - status
+        - diff
+        - log
+        - show
+        - branch
+        - rev-parse
+        - ls-files
+        - switch
+        - checkout
+        - add
+        - commit
+        - push
+        - restore
+        - rm
+        - mv
+        - fetch
+        - pull
+
+  # -----------------------------
+  # Network allowlist (GitHub only)
+  # -----------------------------
+  - allow:
+      network:
+        hosts:
+          - api.openai.com
+          - github.com
+          - api.github.com
+          - raw.githubusercontent.com
+          - objects.githubusercontent.com
+          - uploads.github.com
+          - uploads.github.com
+          - registry.npmjs.org
+          - registry.yarnpkg.com
+          - pnpm.io
+          - nodejs.org
+          - api.supabase.com
+          - supabase.com
+          - sdk.sentry.io
+          - oYY.ingest.sentry.io
+          - fonts.googleapis.com
+          - fonts.gstatic.com
+          - cdn.jsdelivr.net
+          - app.posthog.com
+          - us.i.posthog.com
+          - eu.i.posthog.com
+          - us-assets.i.posthog.com
+          - eu-assets.i.posthog.com
+          - registry-1.docker.io
+          - auth.docker.io
+          - production.cloudflare.docker.com
+          - ghcr.io
+          - pkg-containers.githubusercontent.com
+
+  # -----------------------------
+  # Codex CLI (child agent orchestration)
+  # -----------------------------
+  - allow:
+      command: env
+      args: ["CODEX_HOME=/tmp/codex", "*"]
+
+  - allow:
+      command: codex
+      args: ["*"]
+
+  # -----------------------------
+  # GitHub CLI (scoped PR + workflow run operations)
+  # -----------------------------
+  - allow:
+      command: gh
+      args:
+        - pr
+        - create
+        - view
+        - status
+        - list
+        - run
+        - workflow
+        - watch
+
+  # -----------------------------
+  # Testing (Node toolchain + runners)
+  # -----------------------------
+  - allow: { command: npm, args: ["*"] }
+  - allow: { command: pnpm, args: ["*"] }
+  - allow: { command: npx, args: ["*"] }
+  - allow: { command: node, args: ["*"] }
+  - allow: { command: vitest, args: ["*"] }
+  - allow: { command: playwright, args: ["*"] }
+  - allow: { command: act, args: ["*"] }
+  - allow: { command: test.sh, args: ["*"] }
+        
+  # -----------------------------
+  # Supabase CLI — LOCAL + REMOTE-SAFE ONLY
+  # -----------------------------
+  - allow:
+      command: supabase
+      args:
+        # Local dev lifecycle
+        - start
+        - stop
+        - restart
+        - status
+
+        # Local-safe utilities
+        - init
+        - inspect
+        - test
+
+        # Remote-safe discovery only
+        - link
+        - projects
+
+  - allow:
+      command: supabase
+      args:
+        # Remote-safe DB inspection (no pushes/applies)
+        - db
+        - diff
+
+  - allow:
+      command: supabase
+      args:
+        # Remote-safe DB pulls (no pushes/applies)
+        - db
+        - pull
+
+  - allow:
+      command: supabase
+      args:
+        # Remote-safe migration listing (no apply)
+        - migration
+        - list
+
+  # -----------------------------
+  # Docker CLI
+  # -----------------------------
+  - allow:
+      command: docker
+      args:
+        - "*"
+
+  # -----------------------------
+  # Docker Compose (legacy)
+  # -----------------------------
+  - allow:
+      command: docker-compose
+      args:
+        - "*"
+
+default:
+  action: deny

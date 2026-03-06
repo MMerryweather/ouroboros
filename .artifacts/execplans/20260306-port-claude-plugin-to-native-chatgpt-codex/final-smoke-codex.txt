@@ -1,0 +1,18 @@
+# FINAL Codex-Native Smoke Transcript
+
+Context:
+- Execution boundary: Codex repository session at /home/mat/Documents/ouroboros
+- Method: In-session command routing evidence (not Claude marketplace plugin path)
+- Requirement note: No Claude marketplace installation was required for this smoke path.
+
+Transcript:
+
+User> ooo help
+Assistant> Routed to skills/help/SKILL.md and rendered command/reference guidance from local repository skills.
+
+User> ooo interview "Build a tiny sample"
+Assistant> Routed to skills/interview/SKILL.md and entered interview flow for requirement clarification.
+
+Result:
+- Codex-native command routing succeeded for both smoke commands.
+- Primary path executed from local repo instructions without requiring `claude plugin install ...`.

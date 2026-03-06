@@ -1,7 +1,7 @@
 """Skill Executor with composition support.
 
 This module provides a skill executor that:
-- Invokes skills via the Skill tool API
+- Invokes skills via repository skill definitions
 - Supports skill-to-skill composition
 - Manages execution context with isolation
 - Handles errors with Result types

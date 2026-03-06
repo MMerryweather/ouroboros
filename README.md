@@ -14,7 +14,7 @@
 <p align="center">
   <strong>Stop prompting. Start specifying.</strong>
   <br/>
-  <sub>A Claude Code plugin that turns vague ideas into validated specs — before AI writes a single line of code.</sub>
+  <sub>A Codex-native workflow that turns vague ideas into validated specs — before AI writes a single line of code.</sub>
 </p>
 
 <p align="center">
@@ -78,25 +78,32 @@ The first diamond is **Socratic**: diverge into questions, converge into ontolog
 
 ## Quick Start
 
-**Step 1 — Install the plugin** (in your terminal):
+<!-- PRIMARY_PATH_START -->
+**Step 1 — Set Codex auth** (in your terminal):
 ```bash
-claude plugin marketplace add Q00/ouroboros
-claude plugin install ouroboros@ouroboros
+export OPENAI_API_KEY="your-openai-key"
 ```
 
-**Step 2 — Run setup** (inside a Claude Code session):
-```
-# Start Claude Code, then type:
-ooo setup
+**Step 2 — Install dependencies**:
+```bash
+uv sync
 ```
 
-> `ooo` commands are Claude Code skills — they run **inside a Claude Code session**, not in your terminal.
-> Setup registers the MCP server globally (one-time) and optionally adds an Ouroboros reference block to your project's CLAUDE.md.
-
-**Step 3 — Start building:**
+**Step 3 — Start building in a Codex session at this repo root:**
 ```
+ooo help
 ooo interview "I want to build a task management CLI"
+ooo seed
+ooo run
 ```
+
+Primary path docs: [docs/running-with-codex.md](docs/running-with-codex.md)
+<!-- PRIMARY_PATH_END -->
+
+### Legacy Claude Path (Optional)
+
+Claude-specific setup is still available as a compatibility path:
+[docs/running-with-claude-code.md](docs/running-with-claude-code.md)
 
 <details>
 <summary><strong>What just happened?</strong></summary>
@@ -221,8 +228,8 @@ Two mathematical gates, one philosophy: **don't build until you're clear (Ambigu
 
 ## Commands
 
-> All `ooo` commands run inside a Claude Code session, not in your terminal.
-> Run `ooo setup` after installation to register the MCP server (one-time) and optionally integrate with your project's CLAUDE.md.
+`ooo` commands are available in Codex-native repository sessions and load local skill docs.
+Use `docs/running-with-codex.md` for the primary path.
 
 | Command | What It Does |
 |:--------|:-------------|
