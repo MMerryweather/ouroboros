@@ -1,0 +1,44 @@
+# Systematic Improvement Ledger
+
+### `sil-20260306-01`
+- Run key: `docs/exec-plans/active/20260306-port-claude-plugin-to-native-chatgpt-codex.md::d90a334::apply`
+- Run mode: `apply`
+- Plans analyzed: current active implementation plan + 0 completed plans (history_n target: 20, available: 0)
+- Classes detected:
+  - execution-context-constraints
+  - guardrail-doc-drift
+  - post-implementation-hygiene
+- Classes added:
+  - execution-context-constraints
+  - guardrail-doc-drift
+  - post-implementation-hygiene
+- Candidate guardrails:
+  - Trigger pattern: repeated sandbox/home-write failures during quality-gate commands -> Preventive guardrail: normalize `HOME` and cache paths for uv/pytest/ruff/mypy gate runs in exec plans -> Enforcement location: docs/PLANS.md execution examples (confidence: medium; rationale: seen repeatedly in this run, but no historical cross-plan corpus available).
+  - Trigger pattern: codex-primary docs failing banned-phrase guardrail late in CP-1 -> Preventive guardrail: require guardrail regex check immediately after doc edits in package-local validation -> Enforcement location: docs/exec-plans concrete-step templates (confidence: medium; rationale: single-run direct evidence).
+  - Trigger pattern: review catches import-order drift after implementation packages pass their own tests -> Preventive guardrail: require pre-review `ruff check` scoped to touched Python files before marking package complete -> Enforcement location: .ralph/PROMPT_build.md package completion checklist (confidence: low; rationale: single-run evidence only).
+- Gate outcome: `watch-only`
+- Watch patterns:
+  - Insufficient historical corpus (0 completed plans) makes cross-plan recurrence confidence weak/conflicting.
+  - Keep candidate guardrails as watch patterns until at least 3 completed plans are available for calibration.
+- Applied changes: taxonomy + ledger only; no prompt/doc guardrail edits applied.
+- KPI snapshot:
+  - repeat_class_recurrence_30d: `0.00` (no prior-window corpus)
+  - autonomy_completion_rate: `1.00` (run completed with persisted ledger/taxonomy updates)
+  - false_positive_rule_rate: `0.00` (no resolved prediction windows yet)
+  - doc_churn_rate: `2.00` files/run in current window
+- prediction_window_n: `5`
+- predicted_prevented_classes:
+  - execution-context-constraints
+  - guardrail-doc-drift
+  - post-implementation-hygiene
+- classes_reappeared_within_window: `pending`
+- candidate_confidence_profile:
+  - high: 0
+  - medium: 2
+  - low: 1
+- consistency_drift_findings:
+  - No enforcement artifacts were declared active in this run; all candidates retained as watch-only.
+- stale_rule_actions:
+  - none (first run; pruning window not reached)
+- objective impact:
+  - Prevents premature global rule churn while preserving observable patterns for later calibration.
