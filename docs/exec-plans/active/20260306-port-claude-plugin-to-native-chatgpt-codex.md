@@ -22,7 +22,7 @@ How to see it working after implementation:
 - [x] (2026-03-06 13:46 UTC) Add and update unit/integration tests for new routing/provider/setup behavior.
 - [x] (2026-03-06 13:46 UTC) Run integration checkpoints after each parallel batch and record required artifacts.
 - [x] (2026-03-06 13:51 UTC) Run PR-style review and apply fixes.
-- [ ] Run in-session test-review checklist and record status artifact.
+- [x] (2026-03-06 13:55 UTC) Run in-session test-review checklist and record status artifact.
 - [ ] Run fresh post-review quality gates on HEAD and record fresh evidence artifacts.
 - [ ] Knowledge Harvest: classify each Surprise by issue class, encode durable fix into `AGENTS.md` or `docs/`, record in Outcomes & Retrospective > Knowledge Harvest.
 
