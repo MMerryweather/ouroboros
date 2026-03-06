@@ -1,0 +1,8 @@
+docs/running-with-codex.md:5:<!-- PRIMARY_PATH_START -->
+docs/running-with-codex.md:52:<!-- PRIMARY_PATH_END -->
+docs/getting-started.md:5:<!-- PRIMARY_PATH_START -->
+docs/getting-started.md:37:<!-- PRIMARY_PATH_END -->
+README.md:81:<!-- PRIMARY_PATH_START -->
+README.md:101:<!-- PRIMARY_PATH_END -->
+6:<!-- LEGACY_CLAUDE_START -->
+35:<!-- LEGACY_CLAUDE_END -->

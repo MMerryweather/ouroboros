@@ -17,7 +17,7 @@ How to see it working after implementation:
 - [ ] Produce a compatibility contract document mapping Claude plugin constructs to Codex-native constructs.
 - [x] (2026-03-06 13:33 UTC) Implement provider/runtime abstraction changes for Codex-native execution path while preserving existing behavior.
 - [x] (2026-03-06 13:40 UTC) Implement command routing and skill/agent loading changes for Codex-native invocation.
-- [ ] Update setup flow and documentation to make Codex-native path primary and Claude-plugin path optional/legacy.
+- [x] (2026-03-06 13:43 UTC) Update setup flow and documentation to make Codex-native path primary and Claude-plugin path optional/legacy.
 - [ ] Enforce Codex-only primary guardrail: primary workflow must run without `claude` binary or Claude plugin manifests.
 - [ ] Add and update unit/integration tests for new routing/provider/setup behavior.
 - [ ] Run integration checkpoints after each parallel batch and record required artifacts.
@@ -42,6 +42,9 @@ Use timestamps when completing items, for example:
 
 - Observation: PKG-2 unit tests initially failed in sandboxed execution because registry imports initialize file logging under `~/.ouroboros/logs`, which is read-only in this context.
   Evidence: First `pytest tests/unit/plugin/skills/test_registry.py -v` run failed at collection with `OSError: [Errno 30] Read-only file system`; elevated retry passed and was recorded in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/pkg-2-tests.txt`.
+
+- Observation: Primary-path marker guardrails were absent from all required docs before PKG-3, so automated doc audits could not prove Codex-first guidance boundaries.
+  Evidence: Added marker pairs to `README.md`, `docs/getting-started.md`, and `docs/running-with-codex.md`, plus legacy markers in `docs/running-with-claude-code.md`; audit results are in `.artifacts/execplans/20260306-port-claude-plugin-to-native-chatgpt-codex/pkg-3-doc-audit.txt`.
 
 ## Decision Log
 
@@ -71,6 +74,10 @@ Use timestamps when completing items, for example:
 
 - Decision: Enforce deterministic skill routing in PKG-2 by applying contract-priority ordering and stable tie-break logic (longest match first, then lexical skill name).
   Rationale: Existing routing behavior depended on dictionary/set iteration order and confidence-only sorting, which could produce non-deterministic selection under multiple trigger matches.
+  Date/Author: 2026-03-06 / Building Agent
+
+- Decision: Make `docs/running-with-codex.md` the canonical runtime guide and reduce Claude-specific instructions to explicitly labeled legacy compatibility docs.
+  Rationale: PKG-3 contract requires Codex-native as primary with marker-scoped guardrails and optional Claude path only.
   Date/Author: 2026-03-06 / Building Agent
 
 ## Outcomes & Retrospective
