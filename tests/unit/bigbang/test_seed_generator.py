@@ -164,7 +164,7 @@ class TestSeedGeneratorConstruction:
                 output_dir=Path(tmp_dir) / "seeds",
             )
 
-            assert generator.model == "claude-opus-4-6"
+            assert generator.model == "openai/gpt-5.3-high"
             assert generator.temperature == 0.2
             assert generator.max_tokens == 4096
 

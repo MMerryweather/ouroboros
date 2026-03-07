@@ -418,11 +418,11 @@ class TestGetLLMProviderMode:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Missing/invalid config falls back to claude_code default."""
+        """Missing/invalid config falls back to codex default."""
         monkeypatch.delenv("OUROBOROS_LLM_PROVIDER", raising=False)
 
         def _raise() -> OuroborosConfig:
             raise ConfigError("missing")
 
         monkeypatch.setattr("ouroboros.config.loader.load_config", _raise)
-        assert get_llm_provider_mode() == "claude_code"
+        assert get_llm_provider_mode() == "codex"

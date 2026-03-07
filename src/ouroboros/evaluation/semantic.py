@@ -23,7 +23,7 @@ from ouroboros.providers.base import CompletionConfig, LLMAdapter, Message, Mess
 
 # Default model for semantic evaluation (Standard tier)
 # Can be overridden via SemanticConfig.model
-DEFAULT_SEMANTIC_MODEL = "claude-opus-4-6"
+DEFAULT_SEMANTIC_MODEL = "openai/gpt-5.3-medium"
 
 
 @dataclass(frozen=True, slots=True)

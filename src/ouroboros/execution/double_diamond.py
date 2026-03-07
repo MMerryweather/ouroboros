@@ -433,7 +433,7 @@ class DoubleDiamond:
     """
 
     # Default model - can be overridden via __init__ for PAL router integration
-    DEFAULT_MODEL = "claude-opus-4-6"
+    DEFAULT_MODEL = "openai/gpt-5.3-medium"
     DEFAULT_TEMPERATURE = 0.7
     DEFAULT_MAX_TOKENS = 4096
 

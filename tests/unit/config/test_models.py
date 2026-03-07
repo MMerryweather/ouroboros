@@ -324,9 +324,9 @@ class TestOrchestratorConfig:
     """Test OrchestratorConfig provider mode settings."""
 
     def test_orchestrator_config_default_provider(self) -> None:
-        """OrchestratorConfig defaults to claude_code provider mode."""
+        """OrchestratorConfig defaults to codex provider mode."""
         config = OrchestratorConfig()
-        assert config.llm_provider == "claude_code"
+        assert config.llm_provider == "codex"
 
     def test_orchestrator_config_accepts_codex_provider(self) -> None:
         """OrchestratorConfig accepts codex provider mode."""

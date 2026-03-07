@@ -113,7 +113,7 @@ class ClarificationConfig(BaseModel, frozen=True):
     ambiguity_threshold: float = Field(default=0.2, ge=0.0, le=1.0)
     max_interview_rounds: int = Field(default=10, ge=1)
     model_tier: Literal["frugal", "standard", "frontier"] = "standard"
-    default_model: str = "claude-opus-4-6"
+    default_model: str = "openai/gpt-5.3-high"
 
 
 class ExecutionConfig(BaseModel, frozen=True):
@@ -240,7 +240,7 @@ class OrchestratorConfig(BaseModel, frozen=True):
         default_max_turns: Default max turns for agent execution
     """
 
-    llm_provider: Literal["claude_code", "litellm", "codex"] = "claude_code"
+    llm_provider: Literal["claude_code", "litellm", "codex"] = "codex"
     cli_path: str | None = None
     default_max_turns: int = Field(default=10, ge=1)
 

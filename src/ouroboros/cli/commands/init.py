@@ -26,8 +26,10 @@ from ouroboros.bigbang.interview import (
 from ouroboros.bigbang.seed_generator import SeedGenerator
 from ouroboros.cli.formatters import console
 from ouroboros.cli.formatters.panels import print_error, print_info, print_success, print_warning
+from ouroboros.config.loader import get_llm_provider_mode
 from ouroboros.observability import LoggingConfig, configure_logging
 from ouroboros.providers.base import LLMAdapter
+from ouroboros.providers.codex_adapter import CodexAdapter
 from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 
 
@@ -129,21 +131,21 @@ async def _multiline_prompt_async(prompt_text: str) -> str:
 
 
 def _get_adapter(
-    use_orchestrator: bool,
+    provider_mode: str,
     for_interview: bool = False,
     debug: bool = False,
 ) -> LLMAdapter:
     """Get the appropriate LLM adapter.
 
     Args:
-        use_orchestrator: If True, use Claude Code (Max Plan). Otherwise LiteLLM.
+        provider_mode: One of "claude_code", "litellm", or "codex".
         for_interview: If True, enable Read/Glob/Grep tools for codebase exploration.
         debug: If True, show streaming messages (thinking, tool use).
 
     Returns:
         LLM adapter instance.
     """
-    if use_orchestrator:
+    if provider_mode == "claude_code":
         from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
 
         if for_interview:
@@ -156,8 +158,9 @@ def _get_adapter(
                 on_message=_make_message_callback(debug),
             )
         return ClaudeCodeAdapter()
-    else:
-        return LiteLLMAdapter()
+    if provider_mode == "codex":
+        return CodexAdapter()
+    return LiteLLMAdapter()
 
 
 async def _run_interview_loop(
@@ -249,7 +252,7 @@ async def _run_interview(
     initial_context: str,
     resume_id: str | None = None,
     state_dir: Path | None = None,
-    use_orchestrator: bool = False,
+    provider_mode: str = "codex",
     debug: bool = False,
 ) -> None:
     """Run the interview process.
@@ -258,10 +261,10 @@ async def _run_interview(
         initial_context: Initial context or idea for the interview.
         resume_id: Optional interview ID to resume.
         state_dir: Optional custom state directory.
-        use_orchestrator: If True, use Claude Code (Max Plan) instead of LiteLLM.
+        provider_mode: LLM provider mode ("claude_code", "litellm", "codex").
     """
     # Initialize components
-    llm_adapter = _get_adapter(use_orchestrator, for_interview=True, debug=debug)
+    llm_adapter = _get_adapter(provider_mode, for_interview=True, debug=debug)
     engine = InterviewEngine(
         llm_adapter=llm_adapter,
         state_dir=state_dir or Path.home() / ".ouroboros" / "data",
@@ -347,7 +350,7 @@ async def _run_interview(
     )
 
     if should_start_workflow:
-        await _start_workflow(seed_path, use_orchestrator)
+        await _start_workflow(seed_path, provider_mode == "claude_code")
 
 
 async def _generate_seed_from_interview(
@@ -546,14 +549,17 @@ def start(
         print_info("Debug mode enabled - showing verbose logs")
 
     # Show mode info
-    if orchestrator:
+    provider_mode = "claude_code" if orchestrator else get_llm_provider_mode()
+    if provider_mode == "claude_code":
         print_info("Using Claude Code (Max Plan) - no API key required")
+    elif provider_mode == "codex":
+        print_info("Using Codex (OPENAI_API_KEY required)")
     else:
         print_info("Using LiteLLM - API key required")
 
     # Run interview
     try:
-        asyncio.run(_run_interview(context or "", resume, state_dir, orchestrator, debug))
+        asyncio.run(_run_interview(context or "", resume, state_dir, provider_mode, debug))
     except KeyboardInterrupt:
         console.print()
         print_info("Interview interrupted. Progress has been saved.")

@@ -331,7 +331,7 @@ def get_llm_provider_mode() -> str:
     Priority:
         1. OUROBOROS_LLM_PROVIDER environment variable
         2. config.yaml orchestrator.llm_provider
-        3. "claude_code" default
+        3. "codex" default
 
     Returns:
         One of "claude_code", "litellm", or "codex".
@@ -349,4 +349,4 @@ def get_llm_provider_mode() -> str:
     except ConfigError:
         pass
 
-    return "claude_code"
+    return "codex"
