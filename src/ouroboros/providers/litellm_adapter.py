@@ -5,6 +5,7 @@ protocol using LiteLLM for multi-provider support including OpenRouter.
 """
 
 import os
+from dataclasses import replace
 from typing import Any
 
 import litellm
@@ -31,6 +32,14 @@ RETRIABLE_EXCEPTIONS = (
     litellm.Timeout,
     litellm.APIConnectionError,
 )
+
+OPENAI_MODEL_FALLBACKS: dict[str, list[str]] = {
+    "gpt-5.3-high": ["gpt-5", "gpt-5-mini", "gpt-4o"],
+    "gpt-5.3-medium": ["gpt-5", "gpt-5-mini", "gpt-4o"],
+    "gpt-5.3-low": ["gpt-5-mini", "gpt-4o"],
+    "gpt-5": ["gpt-5-mini", "gpt-4o"],
+    "gpt-5-mini": ["gpt-4o"],
+}
 
 
 class LiteLLMAdapter:
@@ -282,7 +291,104 @@ class LiteLLMAdapter:
             Result containing either the completion response or a ProviderError.
         """
 
-        # Create the retry-decorated function with instance's max_retries
+        current_config = config
+        attempted_models = [config.model]
+        try:
+            while True:
+                try:
+                    response = await self._raw_complete_with_retry(messages, current_config)
+                    return Result.ok(self._parse_response(response, current_config))
+                except litellm.NotFoundError as e:
+                    fallback_model = self._select_openai_fallback_model(
+                        model=current_config.model,
+                        error=e,
+                        attempted_models=attempted_models,
+                    )
+                    if fallback_model:
+                        self._log_openai_model_fallback(current_config.model, fallback_model, e)
+                        attempted_models.append(fallback_model)
+                        current_config = replace(current_config, model=fallback_model)
+                        continue
+                    raise
+                except litellm.APIError as e:
+                    fallback_model = self._select_openai_fallback_model(
+                        model=current_config.model,
+                        error=e,
+                        attempted_models=attempted_models,
+                    )
+                    if fallback_model:
+                        self._log_openai_model_fallback(current_config.model, fallback_model, e)
+                        attempted_models.append(fallback_model)
+                        current_config = replace(current_config, model=fallback_model)
+                        continue
+                    raise
+        except RETRIABLE_EXCEPTIONS as e:
+            # All retries exhausted
+            log.warning(
+                "llm.request.failed.retries_exhausted",
+                model=current_config.model,
+                error=str(e),
+                max_retries=self._max_retries,
+            )
+            return Result.err(
+                ProviderError.from_exception(e, provider=self._extract_provider(current_config.model))
+            )
+        except litellm.APIError as e:
+            # Non-retriable API error
+            log.warning(
+                "llm.request.failed.api_error",
+                model=current_config.model,
+                error=str(e),
+                status_code=getattr(e, "status_code", None),
+            )
+            return Result.err(
+                ProviderError.from_exception(e, provider=self._extract_provider(current_config.model))
+            )
+        except litellm.AuthenticationError as e:
+            log.warning(
+                "llm.request.failed.auth_error",
+                model=current_config.model,
+                error=str(e),
+            )
+            return Result.err(
+                ProviderError(
+                    "Authentication failed - check API key",
+                    provider=self._extract_provider(current_config.model),
+                    status_code=401,
+                    details={"original_exception": type(e).__name__},
+                )
+            )
+        except litellm.BadRequestError as e:
+            log.warning(
+                "llm.request.failed.bad_request",
+                model=current_config.model,
+                error=str(e),
+            )
+            return Result.err(
+                ProviderError.from_exception(e, provider=self._extract_provider(current_config.model))
+            )
+        except Exception as e:
+            # Unexpected error - log and convert to ProviderError
+            log.exception(
+                "llm.request.failed.unexpected",
+                model=current_config.model,
+                error=str(e),
+            )
+            return Result.err(
+                ProviderError(
+                    f"Unexpected error: {e!s}",
+                    provider=self._extract_provider(current_config.model),
+                    details={"original_exception": type(e).__name__},
+                )
+            )
+
+    async def _raw_complete_with_retry(
+        self,
+        messages: list[Message],
+        config: CompletionConfig,
+    ) -> litellm.ModelResponse:
+        """Call _raw_complete with retry for transient transport failures."""
+
         @stamina.retry(
             on=RETRIABLE_EXCEPTIONS,
             attempts=self._max_retries,
@@ -293,68 +399,60 @@ class LiteLLMAdapter:
         async def _with_retry() -> litellm.ModelResponse:
             return await self._raw_complete(messages, config)
 
-        try:
-            response = await _with_retry()
-            return Result.ok(self._parse_response(response, config))
-        except RETRIABLE_EXCEPTIONS as e:
-            # All retries exhausted
-            log.warning(
-                "llm.request.failed.retries_exhausted",
-                model=config.model,
-                error=str(e),
-                max_retries=self._max_retries,
-            )
-            return Result.err(
-                ProviderError.from_exception(e, provider=self._extract_provider(config.model))
-            )
-        except litellm.APIError as e:
-            # Non-retriable API error
-            log.warning(
-                "llm.request.failed.api_error",
-                model=config.model,
-                error=str(e),
-                status_code=getattr(e, "status_code", None),
-            )
-            return Result.err(
-                ProviderError.from_exception(e, provider=self._extract_provider(config.model))
-            )
-        except litellm.AuthenticationError as e:
-            log.warning(
-                "llm.request.failed.auth_error",
-                model=config.model,
-                error=str(e),
-            )
-            return Result.err(
-                ProviderError(
-                    "Authentication failed - check API key",
-                    provider=self._extract_provider(config.model),
-                    status_code=401,
-                    details={"original_exception": type(e).__name__},
-                )
-            )
-        except litellm.BadRequestError as e:
-            log.warning(
-                "llm.request.failed.bad_request",
-                model=config.model,
-                error=str(e),
-            )
-            return Result.err(
-                ProviderError.from_exception(e, provider=self._extract_provider(config.model))
-            )
-        except Exception as e:
-            # Unexpected error - log and convert to ProviderError
-            log.exception(
-                "llm.request.failed.unexpected",
-                model=config.model,
-                error=str(e),
-            )
-            return Result.err(
-                ProviderError(
-                    f"Unexpected error: {e!s}",
-                    provider=self._extract_provider(config.model),
-                    details={"original_exception": type(e).__name__},
-                )
-            )
+        return await _with_retry()
+
+    def _select_openai_fallback_model(
+        self,
+        *,
+        model: str,
+        error: Exception,
+        attempted_models: list[str],
+    ) -> str | None:
+        """Return next OpenAI model fallback candidate if model-not-found was detected."""
+        if not self._is_openai_model_not_found_error(model=model, error=error):
+            return None
+        for candidate in self._openai_fallback_candidates(model):
+            if candidate not in attempted_models:
+                return candidate
+        return None
+
+    def _is_openai_model_not_found_error(self, *, model: str, error: Exception) -> bool:
+        """Check if an exception indicates an unavailable OpenAI model."""
+        if self._extract_provider(model) != "openai":
+            return False
+
+        message = str(error).lower()
+        if "model_not_found" in message or "does not exist or you do not have access" in message:
+            return True
+
+        status_code = getattr(error, "status_code", None)
+        return status_code == 404 and "model" in message
+
+    def _openai_fallback_candidates(self, model: str) -> list[str]:
+        """Generate fallback candidates preserving provider prefix style."""
+        has_prefix = model.startswith("openai/")
+        base_model = model.removeprefix("openai/")
+        for source_prefix, candidates in OPENAI_MODEL_FALLBACKS.items():
+            if base_model.startswith(source_prefix):
+                if has_prefix:
+                    return [f"openai/{candidate}" for candidate in candidates]
+                return candidates
+        return []
+
+    def _log_openai_model_fallback(
+        self,
+        source_model: str,
+        fallback_model: str,
+        error: Exception,
+    ) -> None:
+        """Emit structured logs for model fallback attempts."""
+        log.warning(
+            "llm.request.model_fallback",
+            model=source_model,
+            fallback_model=fallback_model,
+            error=str(error),
+            original_exception=type(error).__name__,
+        )
 
     def _extract_provider(self, model: str) -> str:
         """Extract the provider name from a model string.

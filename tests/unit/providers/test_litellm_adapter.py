@@ -518,6 +518,50 @@ class TestLiteLLMAdapterComplete:
         assert result.value.usage.completion_tokens == 100
         assert result.value.usage.total_tokens == 150
 
+    async def test_falls_back_when_openai_model_not_found(self) -> None:
+        """Retries with fallback model when OpenAI model is unavailable."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="openai/gpt-5.3-high")
+        mock_response = create_mock_response(model="openai/gpt-5")
+
+        call_models: list[str] = []
+
+        async def side_effect(**kwargs: Any) -> MagicMock:
+            call_models.append(kwargs["model"])
+            if kwargs["model"] == "openai/gpt-5.3-high":
+                raise litellm.NotFoundError(
+                    message="The model `gpt-5.3-high` does not exist or you do not have access to it.",
+                    model="gpt-5.3-high",
+                    llm_provider="openai",
+                )
+            return mock_response
+
+        with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.side_effect = side_effect
+            result = await adapter.complete(messages, config)
+
+        assert result.is_ok
+        assert call_models == ["openai/gpt-5.3-high", "openai/gpt-5"]
+
+    async def test_does_not_fallback_for_non_openai_provider(self) -> None:
+        """Does not apply OpenAI fallback behavior to non-OpenAI models."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="anthropic/claude-3-5-sonnet")
+
+        with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.side_effect = litellm.NotFoundError(
+                message="Model not found",
+                model="claude-3-5-sonnet",
+                llm_provider="anthropic",
+            )
+            result = await adapter.complete(messages, config)
+
+        assert result.is_err
+        assert isinstance(result.error, ProviderError)
+        assert mock_acompletion.await_count == 1
+
 
 class TestLiteLLMAdapterRetryBehavior:
     """Test retry behavior using stamina."""
