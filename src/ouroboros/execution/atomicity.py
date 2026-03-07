@@ -312,7 +312,7 @@ async def check_atomicity(
     criteria: AtomicityCriteria | None = None,
     *,
     use_llm: bool = True,
-    model: str = "claude-opus-4-6",
+    model: str = "openai/gpt-5.3-medium",
 ) -> Result[AtomicityResult, ProviderError | ValidationError]:
     """Check if an AC is atomic using LLM + heuristic fallback.
 

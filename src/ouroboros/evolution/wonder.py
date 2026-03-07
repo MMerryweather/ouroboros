@@ -31,8 +31,8 @@ from ouroboros.providers.base import (
 
 logger = logging.getLogger(__name__)
 
-# Wonder requires divergent, creative thinking — Opus excels here
-_FALLBACK_MODEL = "claude-opus-4-6"
+# Wonder requires divergent, creative thinking
+_FALLBACK_MODEL = "openai/gpt-5.3-high"
 
 
 class WonderOutput(BaseModel, frozen=True):

@@ -42,12 +42,12 @@ from ouroboros.providers.base import CompletionConfig, Message, MessageRole
 from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 from ouroboros.strategies.devil_advocate import ConsensusContext, DevilAdvocateStrategy
 
-# Default models for consensus voting (Frontier tier)
+# Default models for consensus voting (review tier)
 # Can be overridden via ConsensusConfig.models
 DEFAULT_CONSENSUS_MODELS: tuple[str, ...] = (
-    "openrouter/openai/gpt-4o",
-    "openrouter/anthropic/claude-opus-4-6",
-    "openrouter/google/gemini-2.5-pro",
+    "openai/gpt-5.3-medium",
+    "openai/gpt-5.3-medium",
+    "openai/gpt-5.3-medium",
 )
 
 
@@ -389,9 +389,9 @@ class DeliberativeConfig:
         max_tokens: Maximum tokens per response
     """
 
-    advocate_model: str = "openrouter/anthropic/claude-opus-4-6"
-    devil_model: str = "openrouter/openai/gpt-4o"
-    judge_model: str = "openrouter/google/gemini-2.5-pro"
+    advocate_model: str = "openai/gpt-5.3-medium"
+    devil_model: str = "openai/gpt-5.3-medium"
+    judge_model: str = "openai/gpt-5.3-medium"
     temperature: float = 0.3
     max_tokens: int = 2048
 

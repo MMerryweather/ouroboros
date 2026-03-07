@@ -106,7 +106,7 @@ _TYPE_DEF_PATTERNS: dict[str, list[str]] = {
     ],
 }
 
-_FALLBACK_MODEL = "claude-opus-4-6"
+_FALLBACK_MODEL = "openai/gpt-5.3-high"
 
 
 @dataclass(frozen=True, slots=True)

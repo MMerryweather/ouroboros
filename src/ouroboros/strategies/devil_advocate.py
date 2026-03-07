@@ -72,7 +72,7 @@ class DevilAdvocateStrategy:
     """
 
     llm_adapter: LLMAdapter
-    model: str = "claude-opus-4-6"
+    model: str = "openai/gpt-5.3-medium"
     confidence_threshold: float = 0.7
     temperature: float = 0.3
     max_tokens: int = 2048

@@ -452,7 +452,7 @@ class DoubleDiamond:
 
         Args:
             llm_adapter: LLM adapter for calling language models.
-            default_model: Model identifier for LLM calls. Defaults to Gemini Flash.
+            default_model: Model identifier for LLM calls. Defaults to gpt-5.3-medium.
                           Can be overridden for PAL router tier integration.
             temperature: Temperature for LLM sampling. Defaults to 0.7.
             max_tokens: Maximum tokens for LLM responses. Defaults to 4096.

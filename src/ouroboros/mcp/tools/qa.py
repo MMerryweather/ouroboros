@@ -12,11 +12,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import os
 from typing import Any
 import uuid
 
 import structlog
 
+from ouroboros.config.loader import get_llm_provider_mode
 from ouroboros.core.types import Result
 from ouroboros.mcp.errors import MCPServerError, MCPToolError
 from ouroboros.mcp.types import (
@@ -27,16 +29,30 @@ from ouroboros.mcp.types import (
     MCPToolResult,
     ToolInputType,
 )
+from ouroboros.providers.base import LLMAdapter
+from ouroboros.providers.codex_adapter import CodexAdapter
 from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
+from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 
 log = structlog.get_logger(__name__)
 
 # Verdict thresholds
 DEFAULT_PASS_THRESHOLD = 0.80
 FAIL_THRESHOLD = 0.40
+DEFAULT_QA_MODEL = os.environ.get("OUROBOROS_QA_MODEL", "openai/gpt-5.3-medium")
 
 VALID_ARTIFACT_TYPES = ("code", "api_response", "document", "screenshot", "test_output", "custom")
 VALID_VERDICTS = ("pass", "revise", "fail")
+
+
+def _create_default_llm_adapter() -> LLMAdapter:
+    """Create an LLM adapter based on configured provider mode."""
+    provider_mode = get_llm_provider_mode()
+    if provider_mode == "claude_code":
+        return ClaudeCodeAdapter(max_turns=1)
+    if provider_mode == "litellm":
+        return LiteLLMAdapter()
+    return CodexAdapter()
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,7 +302,7 @@ class QAHandler:
     Supports iterative loop until pass or max_iterations reached.
     """
 
-    llm_adapter: ClaudeCodeAdapter | None = field(default=None, repr=False)
+    llm_adapter: LLMAdapter | None = field(default=None, repr=False)
 
     @property
     def definition(self) -> MCPToolDefinition:
@@ -425,9 +441,9 @@ class QAHandler:
                 Message(role=MessageRole.USER, content=user_prompt),
             ]
 
-            llm_adapter = self.llm_adapter or ClaudeCodeAdapter(max_turns=1)
+            llm_adapter = self.llm_adapter or _create_default_llm_adapter()
             config = CompletionConfig(
-                model="claude-sonnet-4-20250514",
+                model=DEFAULT_QA_MODEL,
                 temperature=0.2,
                 max_tokens=2048,
             )

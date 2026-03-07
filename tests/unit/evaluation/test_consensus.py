@@ -147,6 +147,11 @@ class TestConsensusConfig:
         """Verify default configuration."""
         config = ConsensusConfig()
         assert len(config.models) == 3
+        assert config.models == (
+            "openai/gpt-5.3-medium",
+            "openai/gpt-5.3-medium",
+            "openai/gpt-5.3-medium",
+        )
         assert config.majority_threshold == 0.66
         assert config.diversity_required is True
 
@@ -512,12 +517,9 @@ class TestDeliberativeConfig:
     def test_default_values(self) -> None:
         """Verify default configuration."""
         config = DeliberativeConfig()
-        assert (
-            "claude" in config.advocate_model.lower()
-            or "anthropic" in config.advocate_model.lower()
-        )
-        assert "gpt" in config.devil_model.lower() or "openai" in config.devil_model.lower()
-        assert "gemini" in config.judge_model.lower() or "google" in config.judge_model.lower()
+        assert config.advocate_model == "openai/gpt-5.3-medium"
+        assert config.devil_model == "openai/gpt-5.3-medium"
+        assert config.judge_model == "openai/gpt-5.3-medium"
 
     def test_custom_models(self) -> None:
         """Create config with custom models."""

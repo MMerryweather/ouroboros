@@ -25,7 +25,7 @@ from ouroboros.verification.models import SpecAssertion, VerificationTier
 
 logger = logging.getLogger(__name__)
 
-_EXTRACTION_MODEL = "claude-sonnet-4-6"
+_EXTRACTION_MODEL = "openai/gpt-5.3-medium"
 
 
 _SYSTEM_PROMPT = """You are a spec verification assistant. Given acceptance criteria for a software project, extract machine-verifiable assertions.

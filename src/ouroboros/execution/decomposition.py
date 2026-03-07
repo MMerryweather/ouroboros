@@ -292,7 +292,7 @@ async def decompose_ac(
     llm_adapter: LiteLLMAdapter,
     discover_insights: str = "",
     *,
-    model: str = "claude-opus-4-6",
+    model: str = "openai/gpt-5.3-medium",
 ) -> Result[DecompositionResult, DecompositionError | ProviderError]:
     """Decompose a non-atomic AC into child ACs using LLM.
 

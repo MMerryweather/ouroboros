@@ -15,7 +15,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from ouroboros.core.types import Result
 from ouroboros.mcp.tools.definitions import EvolveStepHandler, ExecuteSeedHandler
+from ouroboros.mcp.tools.qa import QAHandler
 from ouroboros.mcp.types import ContentType, MCPContentItem, MCPToolResult
+from ouroboros.providers.base import CompletionResponse, UsageInfo
 
 # ---------------------------------------------------------------------------
 # Fixtures: minimal seed YAML
@@ -246,6 +248,64 @@ class TestExecuteSeedHandlerQA:
         assert "qa" not in result.value.meta
         assert "Seed Execution SUCCESS" in result.value.content[0].text
 
+    async def test_execution_adapter_defaults_to_openai_model_in_codex_mode(self) -> None:
+        """ExecuteSeedHandler uses OpenAI default model outside claude mode."""
+        handler = ExecuteSeedHandler()
+
+        fake_exec = FakeExecResult()
+        mock_runner = AsyncMock()
+        mock_runner.execute_seed = AsyncMock(return_value=Result.ok(fake_exec))
+
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("ouroboros.mcp.tools.definitions.get_llm_provider_mode", return_value="codex"),
+            patch("ouroboros.mcp.tools.definitions.ClaudeAgentAdapter") as mock_agent_cls,
+            patch("ouroboros.mcp.tools.definitions.EventStore") as mock_es_cls,
+            patch(
+                "ouroboros.mcp.tools.definitions.OrchestratorRunner",
+                return_value=mock_runner,
+            ),
+            patch(
+                "ouroboros.mcp.tools.qa.QAHandler.handle",
+                new_callable=AsyncMock,
+                return_value=FAKE_QA_RESULT,
+            ),
+        ):
+            mock_es_cls.return_value.initialize = AsyncMock()
+            result = await handler.handle({"seed_content": VALID_SEED_YAML})
+
+        assert result.is_ok
+        assert mock_agent_cls.call_args.kwargs["model"] == "openai/gpt-5.3-medium"
+
+    async def test_execution_adapter_keeps_sdk_default_in_claude_mode(self) -> None:
+        """ExecuteSeedHandler preserves Claude default model when explicitly selected."""
+        handler = ExecuteSeedHandler()
+
+        fake_exec = FakeExecResult()
+        mock_runner = AsyncMock()
+        mock_runner.execute_seed = AsyncMock(return_value=Result.ok(fake_exec))
+
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("ouroboros.mcp.tools.definitions.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.tools.definitions.ClaudeAgentAdapter") as mock_agent_cls,
+            patch("ouroboros.mcp.tools.definitions.EventStore") as mock_es_cls,
+            patch(
+                "ouroboros.mcp.tools.definitions.OrchestratorRunner",
+                return_value=mock_runner,
+            ),
+            patch(
+                "ouroboros.mcp.tools.qa.QAHandler.handle",
+                new_callable=AsyncMock,
+                return_value=FAKE_QA_RESULT,
+            ),
+        ):
+            mock_es_cls.return_value.initialize = AsyncMock()
+            result = await handler.handle({"seed_content": VALID_SEED_YAML})
+
+        assert result.is_ok
+        assert mock_agent_cls.call_args.kwargs["model"] is None
+
     def test_derive_quality_bar(self) -> None:
         """_derive_quality_bar extracts AC from seed."""
         import yaml
@@ -432,3 +492,57 @@ class TestEvolveStepHandlerQA:
 
         qa_args = mock_qa.call_args[0][0]
         assert "improve upon previous" in qa_args["quality_bar"]
+
+
+class TestQAHandlerDefaults:
+    """Test QA handler default provider/model behavior."""
+
+    async def test_codex_mode_uses_openai_default_model(self) -> None:
+        """QA defaults to codex adapter and openai model in codex mode."""
+        handler = QAHandler()
+        mock_adapter = AsyncMock()
+        mock_adapter.complete = AsyncMock(
+            return_value=Result.ok(
+                CompletionResponse(
+                    content='{"score":0.9,"verdict":"pass","dimensions":{},"differences":[],"suggestions":[],"reasoning":"ok"}',
+                    model="openai/gpt-5.3-medium",
+                    usage=UsageInfo(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                )
+            )
+        )
+
+        with (
+            patch("ouroboros.mcp.tools.qa.get_llm_provider_mode", return_value="codex"),
+            patch("ouroboros.mcp.tools.qa.CodexAdapter", return_value=mock_adapter),
+        ):
+            result = await handler.handle({"artifact": "x", "quality_bar": "must pass"})
+
+        assert result.is_ok
+        call_config = mock_adapter.complete.await_args.args[1]
+        assert call_config.model == "openai/gpt-5.3-medium"
+
+    async def test_qa_model_env_override(self) -> None:
+        """QA model can be overridden via OUROBOROS_QA_MODEL."""
+        handler = QAHandler()
+        mock_adapter = AsyncMock()
+        mock_adapter.complete = AsyncMock(
+            return_value=Result.ok(
+                CompletionResponse(
+                    content='{"score":0.9,"verdict":"pass","dimensions":{},"differences":[],"suggestions":[],"reasoning":"ok"}',
+                    model="openai/gpt-5.3-medium",
+                    usage=UsageInfo(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                )
+            )
+        )
+
+        with (
+            patch("ouroboros.mcp.tools.qa.get_llm_provider_mode", return_value="codex"),
+            patch("ouroboros.mcp.tools.qa.CodexAdapter", return_value=mock_adapter),
+            patch.dict("os.environ", {"OUROBOROS_QA_MODEL": "openai/gpt-5.3-high"}, clear=False),
+            patch("ouroboros.mcp.tools.qa.DEFAULT_QA_MODEL", "openai/gpt-5.3-high"),
+        ):
+            result = await handler.handle({"artifact": "x", "quality_bar": "must pass"})
+
+        assert result.is_ok
+        call_config = mock_adapter.complete.await_args.args[1]
+        assert call_config.model == "openai/gpt-5.3-high"

@@ -299,7 +299,7 @@ def get_default_config() -> OuroborosConfig:
                     models=[
                         ModelConfig(provider="openai", model="gpt-4o-mini"),
                         ModelConfig(provider="google", model="gemini-2.0-flash"),
-                        ModelConfig(provider="anthropic", model="claude-3-5-haiku"),
+                        ModelConfig(provider="openai", model="gpt-5.3-medium"),
                     ],
                     use_cases=["routine_coding", "log_analysis", "stage1_fix"],
                 ),
@@ -308,7 +308,7 @@ def get_default_config() -> OuroborosConfig:
                     intelligence_range=(14, 16),
                     models=[
                         ModelConfig(provider="openai", model="gpt-4o"),
-                        ModelConfig(provider="anthropic", model="claude-sonnet-4-6"),
+                        ModelConfig(provider="openai", model="gpt-5.3-medium"),
                         ModelConfig(provider="google", model="gemini-2.5-pro"),
                     ],
                     use_cases=["logic_design", "stage2_evaluation", "refactoring"],
@@ -318,7 +318,7 @@ def get_default_config() -> OuroborosConfig:
                     intelligence_range=(18, 20),
                     models=[
                         ModelConfig(provider="openai", model="o3"),
-                        ModelConfig(provider="anthropic", model="claude-opus-4-6"),
+                        ModelConfig(provider="openai", model="gpt-5.3-high"),
                     ],
                     use_cases=["consensus", "lateral_thinking", "big_bang"],
                 ),

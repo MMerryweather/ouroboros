@@ -13,6 +13,7 @@ from typing import Any
 
 import structlog
 
+from ouroboros.config.loader import get_llm_provider_mode
 from ouroboros.core.types import Result
 from ouroboros.mcp.errors import (
     MCPResourceNotFoundError,
@@ -44,6 +45,23 @@ _TOOL_TYPE_MAP: dict[ToolInputType, type] = {
     ToolInputType.ARRAY: list,
     ToolInputType.OBJECT: dict,
 }
+
+
+def _resolve_default_orchestrator_model(env_var: str, *, provider_mode: str | None = None) -> str | None:
+    """Resolve orchestrator model with provider-aware defaults.
+
+    Explicit Claude mode keeps SDK defaults unless an env override is set.
+    Other modes default to an OpenAI/Codex-aligned model.
+    """
+    override = os.environ.get(env_var)
+    if override:
+        return override
+
+    mode = provider_mode or get_llm_provider_mode()
+    if mode == "claude_code":
+        return None
+
+    return "openai/gpt-5.3-medium"
 
 
 def _build_tool_signature(parameters: tuple[MCPToolParameter, ...]) -> inspect.Signature:
@@ -504,11 +522,18 @@ def create_ouroboros_server(
     from ouroboros.orchestrator.runner import (
         OrchestratorRunner,
     )
+    from ouroboros.providers.codex_adapter import CodexAdapter
     from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
+    from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 
     # Create LLM adapter (shared across services)
-    # Default to ClaudeCodeAdapter — uses Max Plan auth, no API key needed.
-    llm_adapter = ClaudeCodeAdapter(max_turns=1)
+    provider_mode = get_llm_provider_mode()
+    if provider_mode == "claude_code":
+        llm_adapter = ClaudeCodeAdapter(max_turns=1)
+    elif provider_mode == "litellm":
+        llm_adapter = LiteLLMAdapter()
+    else:
+        llm_adapter = CodexAdapter()
 
     # Create or use provided EventStore
     if event_store is None:
@@ -551,8 +576,10 @@ def create_ouroboros_server(
 
     # Wire real execution/evaluation callables for evolve_step so that
     # generation quality is validated, not only ontology deltas.
-    # Use Sonnet for execution (frugal) — Opus is overkill for code generation.
-    execution_model = os.environ.get("OUROBOROS_EXECUTION_MODEL", "claude-sonnet-4-6")
+    execution_model = _resolve_default_orchestrator_model(
+        "OUROBOROS_EXECUTION_MODEL",
+        provider_mode=provider_mode,
+    )
     agent_adapter = ClaudeAgentAdapter(
         permission_mode="acceptEdits",
         model=execution_model,
@@ -846,7 +873,7 @@ def create_ouroboros_server(
         After parallel ACs generate code independently, inconsistencies
         can arise (missing imports, conflicting module structures, etc.).
         This phase runs pytest --collect-only to detect issues and spawns
-        a Claude session to fix them.
+        an agent session to fix them.
 
         Returns a summary of validation results.
         """
@@ -888,8 +915,10 @@ def create_ouroboros_server(
             )
 
         max_attempts = 3
-        # Use Sonnet for validation fixes — import error resolution doesn't need Opus
-        validation_model = os.environ.get("OUROBOROS_VALIDATION_MODEL", "claude-sonnet-4-6")
+        validation_model = _resolve_default_orchestrator_model(
+            "OUROBOROS_VALIDATION_MODEL",
+            provider_mode=provider_mode,
+        )
         validation_adapter = ClaudeAgentAdapter(
             permission_mode="acceptEdits",
             model=validation_model,
@@ -916,7 +945,7 @@ def create_ouroboros_server(
                 if not error_lines:
                     return f"Validation: no fixable errors detected (exit code {collect_result.returncode})"
 
-            # Spawn Claude session to fix the errors
+            # Spawn agent session to fix the errors
             fix_prompt = (
                 f"The project at {project_dir} has import/collection errors that prevent tests from running.\n\n"
                 f"pytest --collect-only output:\n```\n{error_output[:3000]}\n```\n\n"

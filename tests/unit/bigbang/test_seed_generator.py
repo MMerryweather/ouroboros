@@ -34,7 +34,7 @@ from ouroboros.providers.base import CompletionResponse, UsageInfo
 
 def create_mock_completion_response(
     content: str,
-    model: str = "claude-opus-4-6",
+    model: str = "openai/gpt-5.3-high",
 ) -> CompletionResponse:
     """Create a mock completion response."""
     return CompletionResponse(

@@ -25,6 +25,7 @@ import yaml
 from ouroboros.bigbang.ambiguity import AmbiguityScore, ComponentScore, ScoreBreakdown
 from ouroboros.bigbang.interview import InterviewEngine, InterviewState
 from ouroboros.bigbang.seed_generator import SeedGenerator
+from ouroboros.config.loader import get_llm_provider_mode
 from ouroboros.core.errors import ValidationError
 from ouroboros.core.seed import Seed
 from ouroboros.core.text import truncate_head_tail
@@ -46,9 +47,46 @@ from ouroboros.orchestrator.adapter import ClaudeAgentAdapter
 from ouroboros.orchestrator.runner import OrchestratorRunner
 from ouroboros.orchestrator.session import SessionRepository
 from ouroboros.persistence.event_store import EventStore
+from ouroboros.providers.base import LLMAdapter
+from ouroboros.providers.codex_adapter import CodexAdapter
 from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
+from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 
 log = structlog.get_logger(__name__)
+
+
+def _resolve_default_orchestrator_model(env_var: str) -> str | None:
+    """Resolve orchestrator agent model with provider-aware defaults.
+
+    Priority:
+    1. Explicit env override for the call site (e.g. OUROBOROS_EXECUTION_MODEL)
+    2. No default model for explicit Claude provider mode
+    3. OpenAI/Codex-aligned default model for other provider modes
+    """
+    override = os.environ.get(env_var)
+    if override:
+        return override
+
+    if get_llm_provider_mode() == "claude_code":
+        return None
+
+    return "openai/gpt-5.3-medium"
+
+
+def _create_default_llm_adapter(*, max_turns: int = 1, for_interview: bool = False) -> LLMAdapter:
+    """Create an LLM adapter based on configured provider mode."""
+    provider_mode = get_llm_provider_mode()
+    if provider_mode == "claude_code":
+        if for_interview:
+            return ClaudeCodeAdapter(
+                permission_mode="bypassPermissions",
+                allowed_tools=None,
+                max_turns=max_turns,
+            )
+        return ClaudeCodeAdapter(max_turns=max_turns)
+    if provider_mode == "litellm":
+        return LiteLLMAdapter()
+    return CodexAdapter()
 
 
 @dataclass
@@ -60,7 +98,7 @@ class ExecuteSeedHandler:
     """
 
     event_store: EventStore | None = field(default=None, repr=False)
-    llm_adapter: ClaudeCodeAdapter | None = field(default=None, repr=False)
+    llm_adapter: LLMAdapter | None = field(default=None, repr=False)
 
     @property
     def definition(self) -> MCPToolDefinition:
@@ -164,7 +202,10 @@ class ExecuteSeedHandler:
 
         # Use injected or create orchestrator dependencies
         try:
-            agent_adapter = ClaudeAgentAdapter(permission_mode="acceptEdits")
+            agent_adapter = ClaudeAgentAdapter(
+                permission_mode="acceptEdits",
+                model=_resolve_default_orchestrator_model("OUROBOROS_EXECUTION_MODEL"),
+            )
             event_store = self.event_store or EventStore()
             await event_store.initialize()
             # Use stderr: in MCP stdio mode, stdout is the JSON-RPC channel.
@@ -609,7 +650,7 @@ class GenerateSeedHandler:
 
     interview_engine: InterviewEngine | None = field(default=None, repr=False)
     seed_generator: SeedGenerator | None = field(default=None, repr=False)
-    llm_adapter: ClaudeCodeAdapter | None = field(default=None, repr=False)
+    llm_adapter: LLMAdapter | None = field(default=None, repr=False)
 
     @property
     def definition(self) -> MCPToolDefinition:
@@ -671,7 +712,7 @@ class GenerateSeedHandler:
 
         try:
             # Use injected or create services
-            llm_adapter = self.llm_adapter or ClaudeCodeAdapter(max_turns=1)
+            llm_adapter = self.llm_adapter or _create_default_llm_adapter(max_turns=1)
             interview_engine = self.interview_engine or InterviewEngine(
                 llm_adapter=llm_adapter,
             )
@@ -1063,7 +1104,7 @@ class InterviewHandler:
 
         # Use injected or create interview engine
         engine = self.interview_engine or InterviewEngine(
-            llm_adapter=ClaudeCodeAdapter(max_turns=3),
+            llm_adapter=_create_default_llm_adapter(max_turns=3, for_interview=True),
             state_dir=Path.home() / ".ouroboros" / "data",
         )
 
@@ -1333,7 +1374,7 @@ class EvaluateHandler:
     """
 
     event_store: EventStore | None = field(default=None, repr=False)
-    llm_adapter: ClaudeCodeAdapter | None = field(default=None, repr=False)
+    llm_adapter: LLMAdapter | None = field(default=None, repr=False)
 
     @property
     def definition(self) -> MCPToolDefinition:
@@ -1481,7 +1522,7 @@ class EvaluateHandler:
             )
 
             # Use injected or create services
-            llm_adapter = self.llm_adapter or ClaudeCodeAdapter(max_turns=1)
+            llm_adapter = self.llm_adapter or _create_default_llm_adapter(max_turns=1)
             config = PipelineConfig()
             pipeline = EvaluationPipeline(llm_adapter, config)
             result = await pipeline.evaluate(context)

@@ -5,6 +5,7 @@ registration, resource handling, and the full server lifecycle.
 """
 
 import asyncio
+from unittest.mock import patch
 
 import pytest
 
@@ -481,6 +482,38 @@ class TestCreateOuroborosServer:
 
         assert server.info.name == "ouroboros-mcp"
         assert server.info.version == "1.0.0"
+
+    def test_defaults_to_codex_adapter_mode(self) -> None:
+        """Factory chooses codex adapter when provider mode is codex."""
+        with (
+            patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="codex"),
+            patch("ouroboros.providers.codex_adapter.CodexAdapter") as mock_codex,
+        ):
+            create_ouroboros_server()
+
+        mock_codex.assert_called_once_with()
+
+    def test_execution_model_default_is_unset_without_env(self) -> None:
+        """Execution adapter defaults to OpenAI model in non-claude modes."""
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="codex"),
+            patch("ouroboros.orchestrator.adapter.ClaudeAgentAdapter") as mock_agent,
+        ):
+            create_ouroboros_server()
+
+        assert mock_agent.call_args.kwargs["model"] == "openai/gpt-5.3-medium"
+
+    def test_execution_model_default_remains_unset_in_claude_mode(self) -> None:
+        """Explicit claude provider mode preserves SDK model default."""
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.orchestrator.adapter.ClaudeAgentAdapter") as mock_agent,
+        ):
+            create_ouroboros_server()
+
+        assert mock_agent.call_args.kwargs["model"] is None
 
     def test_creates_server_with_custom_config(self) -> None:
         """Factory creates server with custom configuration."""

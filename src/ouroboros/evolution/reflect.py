@@ -34,7 +34,7 @@ from ouroboros.providers.base import (
 
 logger = logging.getLogger(__name__)
 
-_FALLBACK_MODEL = "claude-opus-4-6"
+_FALLBACK_MODEL = "openai/gpt-5.3-high"
 
 
 class OntologyMutation(BaseModel, frozen=True):
