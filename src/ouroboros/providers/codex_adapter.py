@@ -10,8 +10,6 @@ Codex provider contract:
 
 from __future__ import annotations
 
-import os
-
 from ouroboros.core.errors import ProviderError
 from ouroboros.core.types import Result
 from ouroboros.providers.base import CompletionConfig, CompletionResponse, Message
@@ -47,16 +45,6 @@ class CodexAdapter:
         config: CompletionConfig,
     ) -> Result[CompletionResponse, ProviderError]:
         """Make a completion request through LiteLLM with Codex semantics."""
-        openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-        if not openai_api_key:
-            return Result.err(
-                ProviderError(
-                    "OPENAI_API_KEY not set. Export OPENAI_API_KEY for Codex adapter auth.",
-                    provider="codex",
-                    status_code=401,
-                )
-            )
-
         try:
             result = await self._delegate.complete(messages, config)
         except Exception as exc:

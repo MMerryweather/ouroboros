@@ -90,6 +90,24 @@ def _make_message_callback(debug: bool):
     return callback
 
 
+def _safe_confirm(
+    prompt: str,
+    *,
+    default: bool = True,
+    non_interactive_default: bool | None = None,
+) -> bool:
+    """Ask for confirmation, handling non-interactive stdin safely."""
+    try:
+        return Confirm.ask(prompt, default=default)
+    except EOFError:
+        fallback = default if non_interactive_default is None else non_interactive_default
+        print_warning(
+            f"Non-interactive stdin detected for '{prompt}'. Using default: "
+            f"{'yes' if fallback else 'no'}."
+        )
+        return fallback
+
+
 async def _multiline_prompt_async(prompt_text: str) -> str:
     """Get multiline input with proper paste handling.
 
@@ -191,9 +209,13 @@ async def _run_interview_loop(
 
         if question_result.is_err:
             print_error(f"Failed to generate question: {question_result.error.message}")
-            should_retry = Confirm.ask("Retry?", default=True)
+            should_retry = _safe_confirm(
+                "Retry?",
+                default=True,
+                non_interactive_default=False,
+            )
             if not should_retry:
-                break
+                raise RuntimeError("Interview aborted after question generation failure.")
             continue
 
         question = question_result.value
@@ -234,9 +256,10 @@ async def _run_interview_loop(
                     "Consider generating Seed to check ambiguity score."
                 )
 
-            should_continue = Confirm.ask(
+            should_continue = _safe_confirm(
                 "Continue with more questions?",
                 default=True,
+                non_interactive_default=False,
             )
             if not should_continue:
                 complete_result = await engine.complete_interview(state)
@@ -310,9 +333,10 @@ async def _run_interview(
         console.print()
 
         # Ask if user wants to proceed to Seed generation
-        should_generate_seed = Confirm.ask(
+        should_generate_seed = _safe_confirm(
             "[bold cyan]Proceed to generate Seed specification?[/]",
             default=True,
+            non_interactive_default=False,
         )
 
         if not should_generate_seed:

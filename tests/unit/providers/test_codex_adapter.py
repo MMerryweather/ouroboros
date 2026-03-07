@@ -34,17 +34,19 @@ def _sample_response() -> CompletionResponse:
 class TestCodexAdapter:
     """Test CodexAdapter behavior and contract compliance."""
 
-    async def test_requires_openai_api_key(self) -> None:
-        """Returns provider-auth error when OPENAI_API_KEY is missing."""
+    async def test_delegates_even_without_openai_api_key(self) -> None:
+        """Does not pre-validate OPENAI_API_KEY and delegates to provider."""
         adapter = CodexAdapter()
 
         with patch.dict("os.environ", {}, clear=True):
-            result = await adapter.complete(_sample_messages(), _sample_config())
+            with patch(
+                "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
+                new_callable=AsyncMock,
+            ) as mock_complete:
+                mock_complete.return_value = Result.ok(_sample_response())
+                result = await adapter.complete(_sample_messages(), _sample_config())
 
-        assert result.is_err
-        assert result.error.provider == "codex"
-        assert result.error.status_code == 401
-        assert "OPENAI_API_KEY" in result.error.message
+        assert result.is_ok
 
     async def test_passes_model_through_unchanged(self) -> None:
         """Delegates with original CompletionConfig model value unchanged."""
@@ -52,13 +54,12 @@ class TestCodexAdapter:
         messages = _sample_messages()
         config = CompletionConfig(model="openai/gpt-5-mini")
 
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
-            with patch(
-                "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
-                new_callable=AsyncMock,
-            ) as mock_complete:
-                mock_complete.return_value = Result.ok(_sample_response())
-                result = await adapter.complete(messages, config)
+        with patch(
+            "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
+            new_callable=AsyncMock,
+        ) as mock_complete:
+            mock_complete.return_value = Result.ok(_sample_response())
+            result = await adapter.complete(messages, config)
 
         assert result.is_ok
         _, call_config = mock_complete.await_args.args
@@ -74,13 +75,12 @@ class TestCodexAdapter:
             details={"original_exception": "RateLimitError"},
         )
 
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
-            with patch(
-                "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
-                new_callable=AsyncMock,
-            ) as mock_complete:
-                mock_complete.return_value = Result.err(upstream_error)
-                result = await adapter.complete(_sample_messages(), _sample_config())
+        with patch(
+            "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
+            new_callable=AsyncMock,
+        ) as mock_complete:
+            mock_complete.return_value = Result.err(upstream_error)
+            result = await adapter.complete(_sample_messages(), _sample_config())
 
         assert result.is_err
         assert result.error.provider == "codex"
@@ -91,13 +91,12 @@ class TestCodexAdapter:
         """Converts unexpected delegate exceptions to codex ProviderError."""
         adapter = CodexAdapter()
 
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
-            with patch(
-                "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
-                new_callable=AsyncMock,
-            ) as mock_complete:
-                mock_complete.side_effect = RuntimeError("boom")
-                result = await adapter.complete(_sample_messages(), _sample_config())
+        with patch(
+            "ouroboros.providers.litellm_adapter.LiteLLMAdapter.complete",
+            new_callable=AsyncMock,
+        ) as mock_complete:
+            mock_complete.side_effect = RuntimeError("boom")
+            result = await adapter.complete(_sample_messages(), _sample_config())
 
         assert result.is_err
         assert result.error.provider == "codex"

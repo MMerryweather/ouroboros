@@ -136,6 +136,40 @@ class TestLiteLLMAdapterGetApiKey:
 
         assert result is None
 
+    def test_falls_back_to_credentials_file_when_env_missing(self) -> None:
+        """Uses credentials.yaml provider key when env var is absent."""
+        adapter = LiteLLMAdapter()
+        mock_credentials = MagicMock()
+        mock_credentials.providers = {
+            "openai": MagicMock(api_key="sk-from-credentials"),
+        }
+
+        with patch.dict("os.environ", {}, clear=True):
+            with patch(
+                "ouroboros.providers.litellm_adapter.load_credentials",
+                return_value=mock_credentials,
+            ):
+                result = adapter._get_api_key("openai/gpt-5.3-high")
+
+        assert result == "sk-from-credentials"
+
+    def test_env_var_takes_priority_over_credentials_file(self) -> None:
+        """Environment variable key takes precedence over credentials.yaml."""
+        adapter = LiteLLMAdapter()
+        mock_credentials = MagicMock()
+        mock_credentials.providers = {
+            "openai": MagicMock(api_key="sk-from-credentials"),
+        }
+
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-from-env"}, clear=True):
+            with patch(
+                "ouroboros.providers.litellm_adapter.load_credentials",
+                return_value=mock_credentials,
+            ):
+                result = adapter._get_api_key("openai/gpt-5.3-high")
+
+        assert result == "sk-from-env"
+
 
 class TestLiteLLMAdapterBuildCompletionKwargs:
     """Test LiteLLMAdapter._build_completion_kwargs method."""
@@ -189,6 +223,50 @@ class TestLiteLLMAdapterBuildCompletionKwargs:
             kwargs = adapter._build_completion_kwargs(messages, config)
 
         assert kwargs["api_base"] == "https://custom.api"
+
+    def test_omits_top_p_for_openai_gpt5_models(self) -> None:
+        """Omits top_p for OpenAI GPT-5 models that reject the parameter."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="gpt-5.3-high")
+
+        with patch.dict("os.environ", {}, clear=True):
+            kwargs = adapter._build_completion_kwargs(messages, config)
+
+        assert "top_p" not in kwargs
+
+    def test_includes_top_p_for_non_gpt5_openai_models(self) -> None:
+        """Includes top_p for OpenAI models other than GPT-5."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="gpt-4o")
+
+        with patch.dict("os.environ", {}, clear=True):
+            kwargs = adapter._build_completion_kwargs(messages, config)
+
+        assert kwargs["top_p"] == 1.0
+
+    def test_normalizes_temperature_for_openai_gpt5_models(self) -> None:
+        """Normalizes temperature to 1.0 for OpenAI GPT-5 models."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="gpt-5.3-high", temperature=0.7)
+
+        with patch.dict("os.environ", {}, clear=True):
+            kwargs = adapter._build_completion_kwargs(messages, config)
+
+        assert kwargs["temperature"] == 1.0
+
+    def test_preserves_temperature_for_non_gpt5_models(self) -> None:
+        """Keeps configured temperature for non-GPT-5 models."""
+        adapter = LiteLLMAdapter()
+        messages = [Message(role=MessageRole.USER, content="Hello")]
+        config = CompletionConfig(model="gpt-4o", temperature=0.2)
+
+        with patch.dict("os.environ", {}, clear=True):
+            kwargs = adapter._build_completion_kwargs(messages, config)
+
+        assert kwargs["temperature"] == 0.2
 
 
 class TestLiteLLMAdapterParseResponse:

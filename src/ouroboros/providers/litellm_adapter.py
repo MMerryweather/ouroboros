@@ -11,6 +11,7 @@ import litellm
 import stamina
 import structlog
 
+from ouroboros.config.loader import load_credentials
 from ouroboros.core.errors import ProviderError
 from ouroboros.core.security import MAX_LLM_RESPONSE_LENGTH, InputValidator
 from ouroboros.core.types import Result
@@ -92,16 +93,39 @@ class LiteLLMAdapter:
         if self._api_key:
             return self._api_key
 
-        # Check environment variables based on model prefix
-        if model.startswith("openrouter/"):
-            return os.environ.get("OPENROUTER_API_KEY")
-        if model.startswith("anthropic/") or model.startswith("claude"):
-            return os.environ.get("ANTHROPIC_API_KEY")
-        if model.startswith("openai/") or model.startswith("gpt"):
-            return os.environ.get("OPENAI_API_KEY")
+        provider = self._extract_provider(model)
 
-        # Default to OpenRouter for unknown models
-        return os.environ.get("OPENROUTER_API_KEY")
+        # Check environment variables based on model prefix
+        if provider == "openrouter":
+            env_key = os.environ.get("OPENROUTER_API_KEY")
+        elif provider == "anthropic":
+            env_key = os.environ.get("ANTHROPIC_API_KEY")
+        elif provider == "openai":
+            env_key = os.environ.get("OPENAI_API_KEY")
+        else:
+            env_key = os.environ.get("OPENROUTER_API_KEY")
+        if env_key:
+            return env_key
+
+        # Fallback to credentials.yaml if env var is absent.
+        try:
+            credentials = load_credentials()
+        except Exception:
+            return None
+
+        provider_creds = credentials.providers.get(provider)
+        if provider_creds and provider_creds.api_key and not provider_creds.api_key.startswith("YOUR_"):
+            return provider_creds.api_key
+
+        # Unknown providers default to openrouter credentials.
+        if provider == "unknown":
+            openrouter_creds = credentials.providers.get("openrouter")
+            if openrouter_creds and openrouter_creds.api_key and not openrouter_creds.api_key.startswith(
+                "YOUR_"
+            ):
+                return openrouter_creds.api_key
+
+        return None
 
     def _build_completion_kwargs(
         self,
@@ -120,11 +144,12 @@ class LiteLLMAdapter:
         kwargs: dict[str, Any] = {
             "model": config.model,
             "messages": [m.to_dict() for m in messages],
-            "temperature": config.temperature,
+            "temperature": self._normalize_temperature(config.model, config.temperature),
             "max_tokens": config.max_tokens,
-            "top_p": config.top_p,
             "timeout": self._timeout,
         }
+        if self._supports_top_p(config.model):
+            kwargs["top_p"] = config.top_p
 
         if config.stop:
             kwargs["stop"] = config.stop
@@ -137,6 +162,25 @@ class LiteLLMAdapter:
             kwargs["api_base"] = self._api_base
 
         return kwargs
+
+    def _supports_top_p(self, model: str) -> bool:
+        """Return whether top_p should be sent for the given model."""
+        # OpenAI GPT-5 models currently reject top_p.
+        return not self._is_openai_gpt5_model(model)
+
+    def _normalize_temperature(self, model: str, temperature: float) -> float:
+        """Return a model-compatible temperature value."""
+        # OpenAI GPT-5 models currently only support temperature=1.
+        if self._is_openai_gpt5_model(model):
+            return 1.0
+        return temperature
+
+    def _is_openai_gpt5_model(self, model: str) -> bool:
+        """Check whether a model string refers to an OpenAI GPT-5 family model."""
+        normalized_model = model.lower()
+        return normalized_model.startswith("gpt-5") or normalized_model.startswith(
+            "openai/gpt-5"
+        )
 
     async def _raw_complete(
         self,
