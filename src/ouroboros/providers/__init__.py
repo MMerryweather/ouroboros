@@ -1,9 +1,9 @@
 """LLM provider adapters for Ouroboros.
 
 This module provides unified access to LLM providers through the LLMAdapter
-protocol. AnthropicAdapter supports direct Claude API calls. LiteLLMAdapter
-supports multi-provider routing. CodexAdapter provides Codex-native auth and
-error semantics over LiteLLM.
+protocol. CodexAdapter is the primary default path. LiteLLMAdapter supports
+multi-provider routing. AnthropicAdapter remains available for explicit
+provider-specific compatibility use cases.
 """
 
 from ouroboros.providers.anthropic_adapter import AnthropicAdapter
@@ -27,7 +27,7 @@ __all__ = [
     "CompletionConfig",
     "CompletionResponse",
     "UsageInfo",
-    # Implementations (AnthropicAdapter is the recommended default)
+    # Implementations (CodexAdapter is the recommended default)
     "AnthropicAdapter",
     "LiteLLMAdapter",
     "CodexAdapter",

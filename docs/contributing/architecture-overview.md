@@ -17,7 +17,7 @@ Immutable Seed (YAML)
 Phase 1: PAL Router ──> Select model tier (Frugal/Standard/Frontier)
     |
     v
-Phase 2: Double Diamond ──> Decompose ACs, execute via Claude Agent SDK
+Phase 2: Double Diamond ──> Decompose ACs, execute via orchestrator adapter
     |                         (parallel or sequential)
     |
     v
@@ -93,13 +93,13 @@ Phase 5: Secondary Loop ──> Process deferred TODOs
 
 **Data flow**: `EvaluationContext` -> `MechanicalVerifier` -> `SemanticEvaluator` -> `ConsensusTrigger` -> `ConsensusEvaluator` -> `EvaluationResult`
 
-### orchestrator/ -- Claude Agent SDK Integration
+### orchestrator/ -- Runtime Adapter Integration
 
 **When to touch**: Modifying execution behavior, parallel scheduling, strategy patterns.
 
 | File | Purpose |
 |------|---------|
-| `adapter.py` | `ClaudeAgentAdapter` -- wraps Claude Agent SDK |
+| `adapter.py` | `ClaudeAgentAdapter` -- adapter wrapper for runtime execution |
 | `runner.py` | `OrchestratorRunner` -- main execution loop, AC iteration |
 | `parallel_executor.py` | Parallel AC execution with dependency analysis |
 | `execution_strategy.py` | `ExecutionStrategy` protocol + Code/Research/Analysis implementations |

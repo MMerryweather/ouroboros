@@ -52,7 +52,7 @@ ouroboros init "Build an API"    # = ouroboros init start "Build an API"
 ouroboros monitor                # = ouroboros tui monitor
 ```
 
-Orchestrator mode (Claude Agent SDK) is now the default for `run workflow`.
+Orchestrator adapter mode is now the default for `run workflow`.
 
 ---
 
@@ -151,7 +151,7 @@ ouroboros run [workflow] SEED_FILE [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `--orchestrator/--no-orchestrator` | Use Claude Agent SDK (default: enabled) |
+| `--orchestrator/--no-orchestrator` | Use orchestrator adapter mode (default: enabled) |
 | `--resume`, `-r ID` | Resume a previous orchestrator session |
 | `--mcp-config PATH` | Path to MCP client configuration YAML file |
 | `--mcp-tool-prefix PREFIX` | Prefix to add to all MCP tool names (e.g., 'mcp_') |
@@ -189,10 +189,10 @@ ouroboros run seed.yaml --debug
 
 #### Orchestrator Mode
 
-Orchestrator mode is now the default. The workflow is executed via Claude Agent SDK:
+Orchestrator mode is now the default. The workflow is executed via the runtime adapter:
 
 1. Seed is loaded and validated
-2. ClaudeAgentAdapter initialized
+2. Agent adapter initialized
 3. If `--mcp-config` provided, connects to external MCP servers
 4. OrchestratorRunner executes the seed with merged tools
 5. Progress is streamed to console
@@ -618,7 +618,7 @@ The TUI provides 4 screens, accessible via number keys:
 
 ## `ouroboros mcp` - MCP Server Commands
 
-The `mcp` command group manages the Model Context Protocol server, allowing Claude Desktop and other MCP clients to interact with Ouroboros.
+The `mcp` command group manages the Model Context Protocol server, allowing desktop clients and other MCP clients to interact with Ouroboros.
 
 ### `ouroboros mcp serve`
 
@@ -637,7 +637,7 @@ ouroboros mcp serve [OPTIONS]
 #### Examples
 
 ```bash
-# Start with stdio transport (for Claude Desktop)
+# Start with stdio transport (for desktop MCP clients)
 ouroboros mcp serve
 
 # Start with SSE transport on custom port
@@ -647,9 +647,9 @@ ouroboros mcp serve --transport sse --port 9000
 ouroboros mcp serve --host 0.0.0.0 --port 8080 --transport sse
 ```
 
-#### Claude Desktop Integration
+#### Desktop MCP Integration
 
-Add to your Claude Desktop config (`~/.config/claude/config.json`):
+Add to your desktop MCP client config:
 
 ```json
 {

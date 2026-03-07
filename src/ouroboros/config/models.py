@@ -226,14 +226,14 @@ class LoggingConfig(BaseModel, frozen=True):
 
 
 class OrchestratorConfig(BaseModel, frozen=True):
-    """Orchestrator configuration for Claude Agent SDK.
+    """Orchestrator configuration for runtime adapter selection.
 
     Attributes:
         llm_provider: Provider mode for orchestration LLM calls:
             - "claude_code": Claude Code SDK adapter
             - "litellm": LiteLLM multi-provider adapter
             - "codex": Codex adapter (OPENAI_API_KEY auth)
-        cli_path: Path to Claude CLI binary. Supports:
+        cli_path: Path to the CLI binary for `claude_code` mode. Supports:
             - Absolute path: /path/to/my-claude-wrapper
             - ~ expansion: ~/.my-claude-wrapper/bin/my-claude-wrapper
             - None: Use SDK bundled CLI

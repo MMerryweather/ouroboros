@@ -1,4 +1,4 @@
-"""Orchestrator runner for executing seeds via Claude Agent SDK.
+"""Orchestrator runner for executing seeds via runtime adapter.
 
 This module provides the main orchestration logic:
 - OrchestratorRunner: Converts Seed → prompt, executes via adapter, tracks progress

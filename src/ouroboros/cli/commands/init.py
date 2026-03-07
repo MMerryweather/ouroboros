@@ -1,7 +1,7 @@
 """Init command for starting interactive interview.
 
 This command initiates the Big Bang phase interview process.
-Supports both LiteLLM (external API) and Claude Code (Max Plan) modes.
+Supports codex, litellm, and claude_code provider modes.
 """
 
 import asyncio

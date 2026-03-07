@@ -466,18 +466,18 @@ ouroboros mcp info
 
 ## Typical Workflows
 
-### Using Claude Code (Recommended)
+### Using Codex (Recommended)
 
-No API key required - uses your Claude Code Max Plan subscription.
+Requires `OPENAI_API_KEY` for Codex provider mode.
 
 ```bash
 # 1. Check system health
 ouroboros status health
 
 # 2. Start interview to create seed
-ouroboros init --orchestrator "Build a user authentication system"
+ouroboros init "Build a user authentication system"
 
-# 3. Execute the generated seed (orchestrator mode is now default)
+# 3. Execute the generated seed
 ouroboros run seed.yaml
 
 # 4. Monitor in real-time
@@ -500,6 +500,14 @@ ouroboros init "Build a REST API for task management"
 
 # 4. Execute workflow (use --no-orchestrator for LiteLLM path)
 ouroboros run seed.yaml --no-orchestrator
+
+### Using Claude Code (Legacy Compatibility)
+
+Use only when you explicitly want `claude_code` mode:
+
+```bash
+ouroboros init --orchestrator "Build a user authentication system"
+```
 ```
 
 ---

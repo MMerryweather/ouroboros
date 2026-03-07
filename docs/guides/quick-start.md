@@ -6,7 +6,7 @@ Get Ouroboros running and execute your first AI workflow in under 10 minutes.
 
 - Python 3.14+
 - [uv](https://github.com/astral-sh/uv) package manager
-- An LLM API key (Anthropic, OpenAI, or any [LiteLLM-supported provider](https://docs.litellm.ai/docs/providers))
+- An LLM API key (OpenAI recommended, or any [LiteLLM-supported provider](https://docs.litellm.ai/docs/providers))
 
 ## 1. Install
 
@@ -19,11 +19,9 @@ uv run ouroboros --version
 
 ## 2. Configure
 
-Set your API key:
+Set your API key (Codex default path):
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-# or
 export OPENAI_API_KEY="sk-..."
 ```
 

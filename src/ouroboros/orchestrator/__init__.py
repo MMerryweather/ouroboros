@@ -1,10 +1,10 @@
-"""Orchestrator module for Claude Agent SDK integration.
+"""Orchestrator module for runtime adapter integration.
 
 This module provides Epic 8 functionality - executing Ouroboros workflows
-via Claude Agent SDK as an alternative execution mode.
+via the orchestrator runtime adapter.
 
 Key Components:
-    - ClaudeAgentAdapter: Wrapper for Claude Agent SDK with streaming support
+    - ClaudeAgentAdapter: Runtime adapter with streaming support
     - SessionTracker: Immutable session state tracking
     - SessionRepository: Event-based session persistence
     - OrchestratorRunner: Main orchestration logic

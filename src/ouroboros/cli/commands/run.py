@@ -1,7 +1,7 @@
 """Run command group for Ouroboros.
 
 Execute workflows and manage running operations.
-Supports both standard workflow execution and orchestrator mode (Claude Agent SDK).
+Supports both standard workflow execution and orchestrator adapter mode.
 """
 
 from __future__ import annotations
@@ -143,7 +143,7 @@ async def _run_orchestrator(
     debug: bool = False,
     parallel: bool = True,
 ) -> None:
-    """Run workflow via orchestrator mode (Claude Agent SDK).
+    """Run workflow via orchestrator adapter mode.
 
     Args:
         seed_file: Path to seed YAML file.

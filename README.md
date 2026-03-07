@@ -280,11 +280,11 @@ src/ouroboros/
 ├── resilience/     4-pattern stagnation detection, 5 lateral personas
 ├── observability/  3-component drift measurement, auto-retrospective
 ├── persistence/    Event sourcing (SQLAlchemy + aiosqlite), checkpoints
-├── orchestrator/   Claude Agent SDK integration, session management
+├── orchestrator/   Agent runtime orchestration, session management
 ├── core/           Types, errors, seed, ontology, security
 ├── providers/      LiteLLM adapter (100+ models)
-├── mcp/            MCP client/server for Claude Code
-├── plugin/         Claude Code plugin system
+├── mcp/            MCP client/server integration
+├── plugin/         Skill/plugin routing system
 ├── tui/            Terminal UI dashboard
 └── cli/            Typer-based CLI
 ```
