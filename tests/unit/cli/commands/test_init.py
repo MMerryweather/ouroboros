@@ -1,8 +1,9 @@
 """Unit tests for ouroboros.cli.commands.init."""
 
+import asyncio
 from unittest.mock import patch
 
-from ouroboros.cli.commands.init import _safe_confirm
+from ouroboros.cli.commands.init import _multiline_prompt_async, _safe_confirm
 
 
 class TestSafeConfirm:
@@ -19,3 +20,25 @@ class TestSafeConfirm:
             with patch("ouroboros.cli.commands.init.print_warning") as mock_warning:
                 assert _safe_confirm("Retry?", default=True, non_interactive_default=False) is False
                 assert mock_warning.called
+
+
+class TestMultilinePrompt:
+    """Test question input behavior in interactive and non-interactive modes."""
+
+    def test_non_interactive_uses_plain_input(self) -> None:
+        """Uses built-in input fallback when stdin is not a TTY."""
+        with patch("sys.stdin.isatty", return_value=False):
+            with patch("builtins.input", return_value="seed details"):
+                result = asyncio.run(_multiline_prompt_async("Your response"))
+
+        assert result == "seed details"
+
+    def test_non_interactive_eof_raises_actionable_error(self) -> None:
+        """Raises clear runtime error when non-interactive stdin has no input."""
+        with patch("sys.stdin.isatty", return_value=False):
+            with patch("builtins.input", side_effect=EOFError):
+                try:
+                    asyncio.run(_multiline_prompt_async("Your response"))
+                    assert False, "Expected RuntimeError"
+                except RuntimeError as exc:
+                    assert "Non-interactive stdin has no interview response input" in str(exc)

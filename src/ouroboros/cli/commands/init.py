@@ -7,6 +7,7 @@ Supports codex, litellm, and claude_code provider modes.
 import asyncio
 from enum import Enum, auto
 from pathlib import Path
+import sys
 from typing import Annotated
 
 import click
@@ -126,6 +127,16 @@ async def _multiline_prompt_async(prompt_text: str) -> str:
         EOFError: If end-of-file is reached (e.g., stdin closed).
         KeyboardInterrupt: If user presses Ctrl+C.
     """
+    if not sys.stdin.isatty():
+        console.print(f"[bold green]{prompt_text}[/]")
+        try:
+            return input("> ")
+        except EOFError as exc:
+            raise RuntimeError(
+                "Non-interactive stdin has no interview response input. "
+                "Run in an interactive terminal or pipe answers via stdin."
+            ) from exc
+
     bindings = KeyBindings()
 
     @bindings.add("c-j")
