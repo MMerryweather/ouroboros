@@ -51,7 +51,7 @@ class TestGetAdapter:
 
     def test_claude_mode_falls_back_to_codex_when_sdk_missing(self) -> None:
         """Claude mode degrades to Codex when Claude SDK is unavailable."""
-        with patch("ouroboros.cli.commands.init.importlib.util.find_spec", return_value=None):
+        with patch("ouroboros.cli.commands.init.claude_agent_sdk_available", return_value=False):
             adapter = _get_adapter("claude_code")
 
         assert isinstance(adapter, CodexAdapter)

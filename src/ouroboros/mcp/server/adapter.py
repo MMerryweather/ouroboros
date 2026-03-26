@@ -7,6 +7,8 @@ handling, and server lifecycle.
 
 import asyncio
 from collections.abc import Sequence
+import importlib
+import importlib.util
 import inspect
 import os
 from typing import Any
@@ -62,6 +64,18 @@ def _resolve_default_orchestrator_model(env_var: str, *, provider_mode: str | No
         return None
 
     return "openai/gpt-5.3-medium"
+
+
+def _claude_agent_sdk_available() -> bool:
+    """Return True when the Claude Agent SDK can be imported."""
+    if importlib.util.find_spec("claude_agent_sdk") is None:
+        return False
+
+    try:
+        importlib.import_module("claude_agent_sdk")
+    except ImportError:
+        return False
+    return True
 
 
 def _build_tool_signature(parameters: tuple[MCPToolParameter, ...]) -> inspect.Signature:
@@ -518,7 +532,7 @@ def create_ouroboros_server(
         SessionStatusHandler,
     )
     from ouroboros.mcp.tools.registry import ToolRegistry
-    from ouroboros.orchestrator.adapter import ClaudeAgentAdapter
+    from ouroboros.orchestrator.adapter import ClaudeAgentAdapter, claude_agent_sdk_available
     from ouroboros.orchestrator.runner import (
         OrchestratorRunner,
     )
@@ -528,6 +542,15 @@ def create_ouroboros_server(
 
     # Create LLM adapter (shared across services)
     provider_mode = get_llm_provider_mode()
+    if provider_mode == "claude_code" and not _claude_agent_sdk_available():
+        log.warning(
+            "mcp.server.provider_fallback",
+            requested_provider="claude_code",
+            fallback_provider="codex",
+            reason="claude_agent_sdk_not_installed",
+        )
+        provider_mode = "codex"
+
     if provider_mode == "claude_code":
         llm_adapter = ClaudeCodeAdapter(max_turns=1)
     elif provider_mode == "litellm":
@@ -580,19 +603,26 @@ def create_ouroboros_server(
         "OUROBOROS_EXECUTION_MODEL",
         provider_mode=provider_mode,
     )
-    agent_adapter = ClaudeAgentAdapter(
-        permission_mode="acceptEdits",
-        model=execution_model,
-    )
-    # Use stderr console: in MCP stdio mode, stdout is the JSON-RPC channel.
-    # Any non-protocol output on stdout corrupts the MCP communication.
-    evolution_runner = OrchestratorRunner(
-        adapter=agent_adapter,
-        event_store=event_store,
-        console=Console(stderr=True),
-        debug=False,
-        enable_decomposition=True,
-    )
+    evolution_runner: OrchestratorRunner | None = None
+    if claude_agent_sdk_available():
+        agent_adapter = ClaudeAgentAdapter(
+            permission_mode="acceptEdits",
+            model=execution_model,
+        )
+        # Use stderr console: in MCP stdio mode, stdout is the JSON-RPC channel.
+        # Any non-protocol output on stdout corrupts the MCP communication.
+        evolution_runner = OrchestratorRunner(
+            adapter=agent_adapter,
+            event_store=event_store,
+            console=Console(stderr=True),
+            debug=False,
+            enable_decomposition=True,
+        )
+    else:
+        log.warning(
+            "mcp.server.execution_unavailable",
+            reason="claude_agent_sdk_not_installed",
+        )
     evolution_eval_pipeline = EvaluationPipeline(
         llm_adapter=llm_adapter,
         # Stage 1 is intentionally disabled here to avoid running full
@@ -618,6 +648,10 @@ def create_ouroboros_server(
 
     async def _evolution_executor(seed: Any, *, parallel: bool = True) -> Any:
         await _ensure_evolution_store_initialized()
+        if evolution_runner is None:
+            raise RuntimeError(
+                "Evolution execution requires Claude Agent SDK. Run: pip install claude-agent-sdk"
+            )
         return await evolution_runner.execute_seed(
             seed=seed,
             execution_id=None,
@@ -919,10 +953,12 @@ def create_ouroboros_server(
             "OUROBOROS_VALIDATION_MODEL",
             provider_mode=provider_mode,
         )
-        validation_adapter = ClaudeAgentAdapter(
-            permission_mode="acceptEdits",
-            model=validation_model,
-        )
+        validation_adapter: ClaudeAgentAdapter | None = None
+        if claude_agent_sdk_available():
+            validation_adapter = ClaudeAgentAdapter(
+                permission_mode="acceptEdits",
+                model=validation_model,
+            )
 
         for attempt in range(1, max_attempts + 1):
             collect_result = await _run_collect()
@@ -944,6 +980,8 @@ def create_ouroboros_server(
                 ]
                 if not error_lines:
                     return f"Validation: no fixable errors detected (exit code {collect_result.returncode})"
+            if validation_adapter is None:
+                return "Validation fix unavailable: Claude Agent SDK is not installed"
 
             # Spawn agent session to fix the errors
             fix_prompt = (

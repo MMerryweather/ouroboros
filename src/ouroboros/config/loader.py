@@ -11,6 +11,7 @@ Functions:
     get_cli_path: Get CLI path from env var or config
 """
 
+import importlib
 import importlib.util
 import os
 from pathlib import Path
@@ -341,7 +342,7 @@ def get_llm_provider_mode() -> str:
 
     env_mode = os.environ.get("OUROBOROS_LLM_PROVIDER", "").strip().lower()
     if env_mode in valid_modes:
-        if env_mode == "claude_code" and importlib.util.find_spec("claude_agent_sdk") is None:
+        if env_mode == "claude_code" and not _claude_agent_sdk_available():
             return "codex"
         return env_mode
 
@@ -350,7 +351,7 @@ def get_llm_provider_mode() -> str:
         if config.orchestrator.llm_provider in valid_modes:
             if (
                 config.orchestrator.llm_provider == "claude_code"
-                and importlib.util.find_spec("claude_agent_sdk") is None
+                and not _claude_agent_sdk_available()
             ):
                 return "codex"
             return config.orchestrator.llm_provider
@@ -358,3 +359,15 @@ def get_llm_provider_mode() -> str:
         pass
 
     return "codex"
+
+
+def _claude_agent_sdk_available() -> bool:
+    """Return True when the Claude Agent SDK can be imported."""
+    if importlib.util.find_spec("claude_agent_sdk") is None:
+        return False
+
+    try:
+        importlib.import_module("claude_agent_sdk")
+    except ImportError:
+        return False
+    return True

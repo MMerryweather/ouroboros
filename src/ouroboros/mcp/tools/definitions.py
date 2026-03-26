@@ -14,6 +14,7 @@ via the MCP server:
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+import importlib
 import importlib.util
 import os
 from pathlib import Path
@@ -45,7 +46,7 @@ from ouroboros.observability.drift import (
     DRIFT_THRESHOLD,
     DriftMeasurement,
 )
-from ouroboros.orchestrator.adapter import ClaudeAgentAdapter
+from ouroboros.orchestrator.adapter import ClaudeAgentAdapter, claude_agent_sdk_available
 from ouroboros.orchestrator.runner import OrchestratorRunner
 from ouroboros.orchestrator.session import SessionRepository
 from ouroboros.persistence.event_store import EventStore
@@ -92,7 +93,20 @@ def _resolve_default_orchestrator_model(env_var: str) -> str | None:
 
 def _claude_agent_sdk_available() -> bool:
     """Return True when the Claude Agent SDK can be imported."""
-    return importlib.util.find_spec("claude_agent_sdk") is not None
+    if importlib.util.find_spec("claude_agent_sdk") is None:
+        return False
+
+    try:
+        importlib.import_module("claude_agent_sdk")
+    except ImportError:
+        return False
+    return True
+
+
+def _is_missing_claude_sdk_error(error: Exception | str) -> bool:
+    """Return True when an error indicates the Claude SDK is unavailable."""
+    error_text = str(error).lower()
+    return "claude agent sdk is not installed" in error_text or "claude_agent_sdk" in error_text
 
 
 def _create_default_llm_adapter(*, max_turns: int = 1, for_interview: bool = False) -> LLMAdapter:
@@ -232,6 +246,13 @@ class ExecuteSeedHandler:
 
         # Use injected or create orchestrator dependencies
         try:
+            if not claude_agent_sdk_available():
+                return Result.err(
+                    MCPToolError(
+                        "Seed execution requires Claude Agent SDK. Run: pip install claude-agent-sdk",
+                        tool_name="ouroboros_execute_seed",
+                    )
+                )
             agent_adapter = ClaudeAgentAdapter(
                 permission_mode="acceptEdits",
                 model=_resolve_default_orchestrator_model("OUROBOROS_EXECUTION_MODEL"),
@@ -1084,6 +1105,24 @@ class InterviewHandler:
         except Exception as e:
             log.warning("mcp.tool.interview.event_emission_failed", error=str(e))
 
+    async def _ask_next_question(
+        self,
+        engine: InterviewEngine,
+        state: InterviewState,
+    ) -> Result[str, Exception]:
+        """Generate a question, retrying with Codex if Claude SDK is unavailable."""
+        question_result = await engine.ask_next_question(state)
+        if question_result.is_ok or not _is_missing_claude_sdk_error(question_result.error):
+            return question_result
+
+        log.warning(
+            "mcp.tool.interview.question_generation_retrying_with_codex",
+            session_id=state.interview_id,
+            error=str(question_result.error),
+        )
+        engine.llm_adapter = CodexAdapter()
+        return await engine.ask_next_question(state)
+
     @property
     def definition(self) -> MCPToolDefinition:
         """Return the tool definition."""
@@ -1162,7 +1201,7 @@ class InterviewHandler:
 
                     state = result.value
                     _interview_id = state.interview_id
-                    question_result = await engine.ask_next_question(state)
+                    question_result = await self._ask_next_question(engine, state)
                     if question_result.is_err:
                         error_msg = str(question_result.error)
                         from ouroboros.events.interview import interview_failed
@@ -1303,7 +1342,7 @@ class InterviewHandler:
                     )
 
                 # Generate next question (whether resuming or after recording answer)
-                question_result = await engine.ask_next_question(state)
+                question_result = await self._ask_next_question(engine, state)
                 if question_result.is_err:
                     error_msg = str(question_result.error)
                     from ouroboros.events.interview import interview_failed

@@ -11,6 +11,7 @@ https://github.com/Yeachan-Heo/oh-my-codex/commit/6fd5471
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import importlib
 import importlib.util
 import json
 import os
@@ -51,6 +52,10 @@ def _create_default_llm_adapter() -> LLMAdapter:
     provider_mode = get_llm_provider_mode()
     if provider_mode == "claude_code":
         if importlib.util.find_spec("claude_agent_sdk") is None:
+            return CodexAdapter()
+        try:
+            importlib.import_module("claude_agent_sdk")
+        except ImportError:
             return CodexAdapter()
         return ClaudeCodeAdapter(max_turns=1)
     if provider_mode == "litellm":

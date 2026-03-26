@@ -5,16 +5,19 @@ registration, resource handling, and the full server lifecycle.
 """
 
 import asyncio
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from ouroboros.core.types import Result
 from ouroboros.mcp.errors import MCPResourceNotFoundError, MCPToolError
 from ouroboros.mcp.server.adapter import MCPServerAdapter, create_ouroboros_server
 from ouroboros.mcp.server.security import AuthConfig, AuthMethod, RateLimitConfig
 from ouroboros.mcp.types import (
     ToolInputType,
 )
+from ouroboros.providers.base import CompletionResponse, UsageInfo
 
 from .conftest import (
     AddToolHandler,
@@ -509,11 +512,23 @@ class TestCreateOuroborosServer:
         with (
             patch.dict("os.environ", {}, clear=True),
             patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.server.adapter._claude_agent_sdk_available", return_value=True),
             patch("ouroboros.orchestrator.adapter.ClaudeAgentAdapter") as mock_agent,
         ):
             create_ouroboros_server()
 
         assert mock_agent.call_args.kwargs["model"] is None
+
+    def test_falls_back_to_codex_when_claude_sdk_missing(self) -> None:
+        """Shared MCP services use Codex when claude mode is configured but unavailable."""
+        with (
+            patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.server.adapter._claude_agent_sdk_available", return_value=False),
+            patch("ouroboros.providers.codex_adapter.CodexAdapter") as mock_codex,
+        ):
+            create_ouroboros_server()
+
+        mock_codex.assert_called_once_with()
 
     def test_creates_server_with_custom_config(self) -> None:
         """Factory creates server with custom configuration."""
@@ -541,6 +556,38 @@ class TestCreateOuroborosServer:
 
         # Server should be created without error
         assert server.info.name == "ouroboros-mcp"
+
+    @pytest.mark.asyncio
+    async def test_interview_tool_uses_codex_fallback_when_claude_sdk_missing(self, tmp_path) -> None:
+        """MCP interview calls succeed when claude mode is configured but SDK is unavailable."""
+
+        async def fake_complete(self, messages, config):
+            return Result.ok(
+                CompletionResponse(
+                    content="Which validation artifact is mandatory for success?",
+                    model="openai/gpt-5.3-medium",
+                    usage=UsageInfo(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                )
+            )
+
+        fake_event_store = MagicMock()
+        fake_event_store.initialize = AsyncMock()
+        fake_event_store.append = AsyncMock()
+
+        with (
+            patch("ouroboros.mcp.server.adapter.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.server.adapter._claude_agent_sdk_available", return_value=False),
+            patch("ouroboros.providers.codex_adapter.CodexAdapter.complete", new=fake_complete),
+        ):
+            server = create_ouroboros_server(event_store=fake_event_store, state_dir=Path(tmp_path))
+            result = await server.call_tool(
+                "ouroboros_interview",
+                {"initial_context": "Harden the exec plan for autonomous execution."},
+            )
+
+        assert result.is_ok
+        assert "Interview started. Session ID:" in result.value.text_content
+        assert "Which validation artifact is mandatory for success?" in result.value.text_content
 
 
 class TestMCPServerAdapterConcurrency:

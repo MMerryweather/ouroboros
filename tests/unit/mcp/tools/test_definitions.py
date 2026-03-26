@@ -1,7 +1,11 @@
 """Tests for Ouroboros tool definitions."""
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from ouroboros.bigbang.interview import InterviewEngine
+from ouroboros.core.errors import ProviderError
+from ouroboros.core.types import Result
 from ouroboros.mcp.tools.definitions import (
     OUROBOROS_TOOLS,
     EvaluateHandler,
@@ -17,6 +21,7 @@ from ouroboros.mcp.tools.definitions import (
     SessionStatusHandler,
 )
 from ouroboros.mcp.types import ToolInputType
+from ouroboros.providers.base import CompletionResponse, UsageInfo
 from ouroboros.providers.codex_adapter import CodexAdapter
 
 
@@ -57,6 +62,19 @@ class TestExecuteSeedHandler:
 
         assert result.is_err
         assert "seed_content is required" in str(result.error)
+
+    async def test_handle_fails_fast_when_claude_sdk_missing(self) -> None:
+        """execute_seed returns a clear error before starting orchestration if SDK is missing."""
+        handler = ExecuteSeedHandler()
+
+        with patch(
+            "ouroboros.mcp.tools.definitions.claude_agent_sdk_available",
+            return_value=False,
+        ):
+            result = await handler.handle({"seed_content": VALID_SEED_YAML})
+
+        assert result.is_err
+        assert "Seed execution requires Claude Agent SDK" in str(result.error)
 
     async def test_handle_success(self) -> None:
         """handle returns success with valid YAML seed input."""
@@ -233,6 +251,49 @@ class TestInterviewHandlerDefinition:
         cwd_param = next(p for p in defn.parameters if p.name == "cwd")
         assert cwd_param.required is False
         assert cwd_param.type == ToolInputType.STRING
+
+    async def test_handle_retries_with_codex_when_injected_engine_reports_missing_sdk(self) -> None:
+        """Interview handler retries with Codex if an injected Claude engine fails at runtime."""
+
+        class MissingSDKAdapter:
+            async def complete(self, messages, config):
+                return Result.err(
+                    ProviderError(
+                        "Claude Agent SDK is not installed. Run: pip install claude-agent-sdk",
+                        details={"import_error": "No module named 'claude_agent_sdk'"},
+                    )
+                )
+
+        class SuccessfulAdapter:
+            async def complete(self, messages, config):
+                return Result.ok(
+                    CompletionResponse(
+                        content="What evidence should execution produce?",
+                        model="openai/gpt-5.3-medium",
+                        usage=UsageInfo(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                    )
+                )
+
+        fallback_adapter = SuccessfulAdapter()
+        interview_engine = InterviewEngine(
+            llm_adapter=MissingSDKAdapter(),
+            state_dir=Path("/tmp/test-interview-handler-fallback"),
+        )
+        handler = InterviewHandler(
+            interview_engine=interview_engine,
+            event_store=MagicMock(initialize=AsyncMock(), append=AsyncMock()),
+        )
+
+        with patch(
+            "ouroboros.mcp.tools.definitions.CodexAdapter",
+            return_value=fallback_adapter,
+        ):
+            result = await handler.handle({"initial_context": "Need an execution-ready plan."})
+
+        assert result.is_ok
+        assert "Interview started. Session ID:" in result.value.text_content
+        assert "What evidence should execution produce?" in result.value.text_content
+        assert interview_engine.llm_adapter is fallback_adapter
 
 
 class TestAdapterSelection:

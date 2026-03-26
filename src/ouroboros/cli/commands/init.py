@@ -6,7 +6,6 @@ Supports codex, litellm, and claude_code provider modes.
 
 import asyncio
 from enum import Enum, auto
-import importlib.util
 from pathlib import Path
 import sys
 from typing import Annotated
@@ -30,6 +29,7 @@ from ouroboros.cli.formatters import console
 from ouroboros.cli.formatters.panels import print_error, print_info, print_success, print_warning
 from ouroboros.config.loader import get_llm_provider_mode
 from ouroboros.observability import LoggingConfig, configure_logging
+from ouroboros.orchestrator.adapter import claude_agent_sdk_available
 from ouroboros.providers.base import LLMAdapter
 from ouroboros.providers.codex_adapter import CodexAdapter
 from ouroboros.providers.litellm_adapter import LiteLLMAdapter
@@ -176,7 +176,7 @@ def _get_adapter(
         LLM adapter instance.
     """
     if provider_mode == "claude_code":
-        if importlib.util.find_spec("claude_agent_sdk") is None:
+        if not claude_agent_sdk_available():
             return CodexAdapter()
         from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
 
@@ -588,6 +588,12 @@ def start(
 
     # Show mode info
     provider_mode = "claude_code" if orchestrator else get_llm_provider_mode()
+    if provider_mode == "claude_code" and not claude_agent_sdk_available():
+        print_warning(
+            "Claude Agent SDK is unavailable; falling back to Codex for interview mode and "
+            "disabling orchestrator auto-run."
+        )
+        provider_mode = "codex"
     if provider_mode == "claude_code":
         print_info("Using Claude Code (Max Plan) - no API key required")
     elif provider_mode == "codex":

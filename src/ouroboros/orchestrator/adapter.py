@@ -20,6 +20,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+import importlib
+import importlib.util
 import os
 from typing import TYPE_CHECKING, Any
 
@@ -48,6 +50,18 @@ _TOOL_DETAIL_EXTRACTORS: dict[str, str] = {
     "WebSearch": "query",
     "NotebookEdit": "notebook_path",
 }
+
+
+def claude_agent_sdk_available() -> bool:
+    """Return True when the Claude Agent SDK can be imported."""
+    if importlib.util.find_spec("claude_agent_sdk") is None:
+        return False
+
+    try:
+        importlib.import_module("claude_agent_sdk")
+    except ImportError:
+        return False
+    return True
 
 
 def _format_tool_detail(tool_name: str, tool_input: dict[str, Any]) -> str:

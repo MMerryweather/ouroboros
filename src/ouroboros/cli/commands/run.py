@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 from ouroboros.cli.formatters import console
 from ouroboros.cli.formatters.panels import print_error, print_info, print_success, print_warning
 from ouroboros.core.security import InputValidator
+from ouroboros.orchestrator.adapter import claude_agent_sdk_available
 
 
 class _DefaultWorkflowGroup(typer.core.TyperGroup):
@@ -156,6 +157,10 @@ async def _run_orchestrator(
     from ouroboros.core.seed import Seed
     from ouroboros.orchestrator import ClaudeAgentAdapter, OrchestratorRunner
     from ouroboros.persistence.event_store import EventStore
+
+    if not claude_agent_sdk_available():
+        print_error("Claude Agent SDK is not installed. Run: pip install claude-agent-sdk")
+        raise typer.Exit(1)
 
     # Load seed
     seed_data = _load_seed_from_yaml(seed_file)
