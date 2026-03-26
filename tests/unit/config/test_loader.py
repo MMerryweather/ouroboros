@@ -426,3 +426,27 @@ class TestGetLLMProviderMode:
 
         monkeypatch.setattr("ouroboros.config.loader.load_config", _raise)
         assert get_llm_provider_mode() == "codex"
+
+    def test_claude_env_falls_back_to_codex_when_sdk_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Legacy claude env config degrades to codex when SDK is unavailable."""
+        monkeypatch.setenv("OUROBOROS_LLM_PROVIDER", "claude_code")
+        monkeypatch.setattr("ouroboros.config.loader.importlib.util.find_spec", lambda _: None)
+
+        assert get_llm_provider_mode() == "codex"
+
+    def test_claude_config_falls_back_to_codex_when_sdk_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Legacy claude file config degrades to codex when SDK is unavailable."""
+        monkeypatch.delenv("OUROBOROS_LLM_PROVIDER", raising=False)
+        monkeypatch.setattr(
+            "ouroboros.config.loader.load_config",
+            lambda: OuroborosConfig(orchestrator={"llm_provider": "claude_code"}),
+        )
+        monkeypatch.setattr("ouroboros.config.loader.importlib.util.find_spec", lambda _: None)
+
+        assert get_llm_provider_mode() == "codex"

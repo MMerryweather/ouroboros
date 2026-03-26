@@ -23,6 +23,28 @@ app = typer.Typer(
 )
 
 
+def _configure_stdio_runtime_safety() -> None:
+    """Silence non-protocol logging/noise that can corrupt stdio MCP transport."""
+    from ouroboros.observability.logging import set_console_logging
+
+    set_console_logging(False)
+
+    try:
+        import litellm
+
+        if hasattr(litellm, "set_verbose"):
+            litellm.set_verbose = False
+        if hasattr(litellm, "suppress_debug_info"):
+            litellm.suppress_debug_info = True
+        if hasattr(litellm, "turn_off_message_logging"):
+            litellm.turn_off_message_logging = True
+        if hasattr(litellm, "json_logs"):
+            litellm.json_logs = False
+    except Exception:
+        # Best-effort only; stdio safety should not fail server startup.
+        pass
+
+
 async def _run_mcp_server(
     host: str,
     port: int,
@@ -39,6 +61,9 @@ async def _run_mcp_server(
     """
     from ouroboros.mcp.server.adapter import create_ouroboros_server
     from ouroboros.persistence.event_store import EventStore
+
+    if transport == "stdio":
+        _configure_stdio_runtime_safety()
 
     # Create EventStore with custom path if provided
     event_store = None

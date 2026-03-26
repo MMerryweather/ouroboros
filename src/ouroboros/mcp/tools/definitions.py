@@ -12,7 +12,9 @@ via the MCP server:
 - ouroboros_generate_seed: Convert interview to immutable seed
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+import importlib.util
 import os
 from pathlib import Path
 from typing import Any
@@ -55,6 +57,21 @@ from ouroboros.providers.litellm_adapter import LiteLLMAdapter
 log = structlog.get_logger(__name__)
 
 
+@contextmanager
+def _temporary_cwd(path: str | None) -> Any:
+    """Temporarily change CWD for repo-relative prompt loading and context."""
+    if not path:
+        yield
+        return
+
+    previous = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
+
+
 def _resolve_default_orchestrator_model(env_var: str) -> str | None:
     """Resolve orchestrator agent model with provider-aware defaults.
 
@@ -73,10 +90,23 @@ def _resolve_default_orchestrator_model(env_var: str) -> str | None:
     return "openai/gpt-5.3-medium"
 
 
+def _claude_agent_sdk_available() -> bool:
+    """Return True when the Claude Agent SDK can be imported."""
+    return importlib.util.find_spec("claude_agent_sdk") is not None
+
+
 def _create_default_llm_adapter(*, max_turns: int = 1, for_interview: bool = False) -> LLMAdapter:
     """Create an LLM adapter based on configured provider mode."""
     provider_mode = get_llm_provider_mode()
     if provider_mode == "claude_code":
+        if not _claude_agent_sdk_available():
+            log.warning(
+                "mcp.tool.provider_fallback",
+                requested_provider="claude_code",
+                fallback_provider="codex",
+                reason="claude_agent_sdk_not_installed",
+            )
+            return CodexAdapter()
         if for_interview:
             return ClaudeCodeAdapter(
                 permission_mode="bypassPermissions",
@@ -1083,6 +1113,12 @@ class InterviewHandler:
                     description="Response to the current interview question",
                     required=False,
                 ),
+                MCPToolParameter(
+                    name="cwd",
+                    type=ToolInputType.STRING,
+                    description="Optional working directory for repo-relative context",
+                    required=False,
+                ),
             ),
         )
 
@@ -1101,6 +1137,7 @@ class InterviewHandler:
         initial_context = arguments.get("initial_context")
         session_id = arguments.get("session_id")
         answer = arguments.get("answer")
+        cwd = arguments.get("cwd")
 
         # Use injected or create interview engine
         engine = self.interview_engine or InterviewEngine(
@@ -1111,124 +1148,125 @@ class InterviewHandler:
         _interview_id: str | None = None  # Track for error event emission
 
         try:
-            # Start new interview
-            if initial_context:
-                result = await engine.start_interview(initial_context)
-                if result.is_err:
-                    return Result.err(
-                        MCPToolError(
-                            str(result.error),
-                            tool_name="ouroboros_interview",
-                        )
-                    )
-
-                state = result.value
-                _interview_id = state.interview_id
-                question_result = await engine.ask_next_question(state)
-                if question_result.is_err:
-                    error_msg = str(question_result.error)
-                    from ouroboros.events.interview import interview_failed
-
-                    await self._emit_event(
-                        interview_failed(
-                            state.interview_id,
-                            error_msg,
-                            phase="question_generation",
-                        )
-                    )
-                    # Return recoverable result with session ID for retry
-                    if "empty response" in error_msg.lower():
-                        return Result.ok(
-                            MCPToolResult(
-                                content=(
-                                    MCPContentItem(
-                                        type=ContentType.TEXT,
-                                        text=(
-                                            f"Interview started but question generation failed after retries. "
-                                            f"Session ID: {state.interview_id}\n\n"
-                                            f'Resume with: session_id="{state.interview_id}"'
-                                        ),
-                                    ),
-                                ),
-                                is_error=True,
-                                meta={"session_id": state.interview_id, "recoverable": True},
-                            )
-                        )
-                    return Result.err(MCPToolError(error_msg, tool_name="ouroboros_interview"))
-
-                question = question_result.value
-
-                # Record the question as an unanswered round so resume can find it
-                from ouroboros.bigbang.interview import InterviewRound
-
-                state.rounds.append(
-                    InterviewRound(
-                        round_number=1,
-                        question=question,
-                        user_response=None,
-                    )
-                )
-                state.mark_updated()
-
-                # Persist state to disk so subsequent calls can resume
-                save_result = await engine.save_state(state)
-                if save_result.is_err:
-                    log.warning(
-                        "mcp.tool.interview.save_failed_on_start",
-                        error=str(save_result.error),
-                    )
-
-                # Emit interview started event
-                from ouroboros.events.interview import interview_started
-
-                await self._emit_event(
-                    interview_started(
-                        state.interview_id,
-                        initial_context,
-                    )
-                )
-
-                log.info(
-                    "mcp.tool.interview.started",
-                    session_id=state.interview_id,
-                )
-
-                return Result.ok(
-                    MCPToolResult(
-                        content=(
-                            MCPContentItem(
-                                type=ContentType.TEXT,
-                                text=f"Interview started. Session ID: {state.interview_id}\n\n{question}",
-                            ),
-                        ),
-                        is_error=False,
-                        meta={"session_id": state.interview_id},
-                    )
-                )
-
-            # Resume existing interview
-            if session_id:
-                load_result = await engine.load_state(session_id)
-                if load_result.is_err:
-                    return Result.err(
-                        MCPToolError(
-                            str(load_result.error),
-                            tool_name="ouroboros_interview",
-                        )
-                    )
-
-                state = load_result.value
-                _interview_id = session_id
-
-                # If answer provided, record it first
-                if answer:
-                    if not state.rounds:
+            with _temporary_cwd(cwd):
+                # Start new interview
+                if initial_context:
+                    result = await engine.start_interview(initial_context)
+                    if result.is_err:
                         return Result.err(
                             MCPToolError(
-                                "Cannot record answer - no questions have been asked yet",
+                                str(result.error),
                                 tool_name="ouroboros_interview",
                             )
                         )
+
+                    state = result.value
+                    _interview_id = state.interview_id
+                    question_result = await engine.ask_next_question(state)
+                    if question_result.is_err:
+                        error_msg = str(question_result.error)
+                        from ouroboros.events.interview import interview_failed
+
+                        await self._emit_event(
+                            interview_failed(
+                                state.interview_id,
+                                error_msg,
+                                phase="question_generation",
+                            )
+                        )
+                        # Return recoverable result with session ID for retry
+                        if "empty response" in error_msg.lower():
+                            return Result.ok(
+                                MCPToolResult(
+                                    content=(
+                                        MCPContentItem(
+                                            type=ContentType.TEXT,
+                                            text=(
+                                                f"Interview started but question generation failed after retries. "
+                                                f"Session ID: {state.interview_id}\n\n"
+                                                f'Resume with: session_id="{state.interview_id}"'
+                                            ),
+                                        ),
+                                    ),
+                                    is_error=True,
+                                    meta={"session_id": state.interview_id, "recoverable": True},
+                                )
+                            )
+                        return Result.err(MCPToolError(error_msg, tool_name="ouroboros_interview"))
+
+                    question = question_result.value
+
+                    # Record the question as an unanswered round so resume can find it
+                    from ouroboros.bigbang.interview import InterviewRound
+
+                    state.rounds.append(
+                        InterviewRound(
+                            round_number=1,
+                            question=question,
+                            user_response=None,
+                        )
+                    )
+                    state.mark_updated()
+
+                    # Persist state to disk so subsequent calls can resume
+                    save_result = await engine.save_state(state)
+                    if save_result.is_err:
+                        log.warning(
+                            "mcp.tool.interview.save_failed_on_start",
+                            error=str(save_result.error),
+                        )
+
+                    # Emit interview started event
+                    from ouroboros.events.interview import interview_started
+
+                    await self._emit_event(
+                        interview_started(
+                            state.interview_id,
+                            initial_context,
+                        )
+                    )
+
+                    log.info(
+                        "mcp.tool.interview.started",
+                        session_id=state.interview_id,
+                    )
+
+                    return Result.ok(
+                        MCPToolResult(
+                            content=(
+                                MCPContentItem(
+                                    type=ContentType.TEXT,
+                                    text=f"Interview started. Session ID: {state.interview_id}\n\n{question}",
+                                ),
+                            ),
+                            is_error=False,
+                            meta={"session_id": state.interview_id},
+                        )
+                    )
+
+                # Resume existing interview
+                if session_id:
+                    load_result = await engine.load_state(session_id)
+                    if load_result.is_err:
+                        return Result.err(
+                            MCPToolError(
+                                str(load_result.error),
+                                tool_name="ouroboros_interview",
+                            )
+                        )
+
+                    state = load_result.value
+                    _interview_id = session_id
+
+                    # If answer provided, record it first
+                    if answer:
+                        if not state.rounds:
+                            return Result.err(
+                                MCPToolError(
+                                    "Cannot record answer - no questions have been asked yet",
+                                    tool_name="ouroboros_interview",
+                                )
+                            )
 
                     last_question = state.rounds[-1].question
 

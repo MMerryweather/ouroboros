@@ -17,6 +17,7 @@ from ouroboros.mcp.tools.definitions import (
     SessionStatusHandler,
 )
 from ouroboros.mcp.types import ToolInputType
+from ouroboros.providers.codex_adapter import CodexAdapter
 
 
 class TestExecuteSeedHandler:
@@ -219,6 +220,35 @@ class TestOuroborosTools:
         for handler in OUROBOROS_TOOLS:
             assert handler.definition.description
             assert len(handler.definition.description) > 10
+
+
+class TestInterviewHandlerDefinition:
+    """Test interview tool schema details."""
+
+    def test_definition_accepts_optional_cwd(self) -> None:
+        """Interview handler exposes cwd for repo-relative execution context."""
+        handler = InterviewHandler()
+        defn = handler.definition
+
+        cwd_param = next(p for p in defn.parameters if p.name == "cwd")
+        assert cwd_param.required is False
+        assert cwd_param.type == ToolInputType.STRING
+
+
+class TestAdapterSelection:
+    """Test provider fallback behavior for MCP tool adapters."""
+
+    def test_interview_adapter_falls_back_to_codex_when_claude_sdk_missing(self) -> None:
+        """Claude-configured interview tooling degrades to Codex if SDK is absent."""
+        from ouroboros.mcp.tools.definitions import _create_default_llm_adapter
+
+        with (
+            patch("ouroboros.mcp.tools.definitions.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.tools.definitions._claude_agent_sdk_available", return_value=False),
+        ):
+            adapter = _create_default_llm_adapter(for_interview=True, max_turns=3)
+
+        assert isinstance(adapter, CodexAdapter)
 
 
 VALID_SEED_YAML = """\

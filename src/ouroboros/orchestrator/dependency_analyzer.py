@@ -249,10 +249,10 @@ class DependencyAnalyzer:
         from ouroboros.providers.base import CompletionConfig, Message, MessageRole
 
         if self._llm is None:
-            # Default to ClaudeCodeAdapter (orchestrator mode)
-            from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
+            # Default to Codex so dependency analysis does not require Claude SDK.
+            from ouroboros.providers.codex_adapter import CodexAdapter
 
-            self._llm = ClaudeCodeAdapter(max_turns=1)
+            self._llm = CodexAdapter()
 
         # Build prompt
         ac_list = "\n".join(f"AC {i}: {ac}" for i, ac in enumerate(criteria))

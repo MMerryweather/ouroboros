@@ -3,7 +3,9 @@
 import asyncio
 from unittest.mock import patch
 
-from ouroboros.cli.commands.init import _multiline_prompt_async, _safe_confirm
+from ouroboros.providers.codex_adapter import CodexAdapter
+
+from ouroboros.cli.commands.init import _get_adapter, _multiline_prompt_async, _safe_confirm
 
 
 class TestSafeConfirm:
@@ -42,3 +44,14 @@ class TestMultilinePrompt:
                     assert False, "Expected RuntimeError"
                 except RuntimeError as exc:
                     assert "Non-interactive stdin has no interview response input" in str(exc)
+
+
+class TestGetAdapter:
+    """Test provider adapter selection for interviews."""
+
+    def test_claude_mode_falls_back_to_codex_when_sdk_missing(self) -> None:
+        """Claude mode degrades to Codex when Claude SDK is unavailable."""
+        with patch("ouroboros.cli.commands.init.importlib.util.find_spec", return_value=None):
+            adapter = _get_adapter("claude_code")
+
+        assert isinstance(adapter, CodexAdapter)

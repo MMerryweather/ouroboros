@@ -6,6 +6,7 @@ Supports codex, litellm, and claude_code provider modes.
 
 import asyncio
 from enum import Enum, auto
+import importlib.util
 from pathlib import Path
 import sys
 from typing import Annotated
@@ -175,6 +176,8 @@ def _get_adapter(
         LLM adapter instance.
     """
     if provider_mode == "claude_code":
+        if importlib.util.find_spec("claude_agent_sdk") is None:
+            return CodexAdapter()
         from ouroboros.providers.claude_code_adapter import ClaudeCodeAdapter
 
         if for_interview:

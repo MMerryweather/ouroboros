@@ -546,3 +546,26 @@ class TestQAHandlerDefaults:
         assert result.is_ok
         call_config = mock_adapter.complete.await_args.args[1]
         assert call_config.model == "openai/gpt-5.3-high"
+
+    async def test_claude_mode_falls_back_to_codex_when_sdk_missing(self) -> None:
+        """QA falls back to codex when claude mode is configured without SDK."""
+        handler = QAHandler()
+        mock_adapter = AsyncMock()
+        mock_adapter.complete = AsyncMock(
+            return_value=Result.ok(
+                CompletionResponse(
+                    content='{"score":0.9,"verdict":"pass","dimensions":{},"differences":[],"suggestions":[],"reasoning":"ok"}',
+                    model="openai/gpt-5.3-medium",
+                    usage=UsageInfo(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                )
+            )
+        )
+
+        with (
+            patch("ouroboros.mcp.tools.qa.get_llm_provider_mode", return_value="claude_code"),
+            patch("ouroboros.mcp.tools.qa.importlib.util.find_spec", return_value=None),
+            patch("ouroboros.mcp.tools.qa.CodexAdapter", return_value=mock_adapter),
+        ):
+            result = await handler.handle({"artifact": "x", "quality_bar": "must pass"})
+
+        assert result.is_ok
