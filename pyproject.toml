@@ -13,7 +13,7 @@ dependencies = [
     "cachetools>=5.0.0",
     "claude-agent-sdk>=0.1.0",
     "httpx>=0.27.0",
-    "litellm>=1.80.0",
+    "litellm==1.80.16",
     "mcp>=1.26.0",
     "prompt-toolkit>=3.0.0",
     "pydantic>=2.0.0",
